@@ -1,7 +1,7 @@
 - id:
   ns: jqsh
 
-- id: args
+- id: opts
   sh: |-
     # Use «local -A opts; local args cont; args "$@"» in caller
     local opt val tmp i; args=()

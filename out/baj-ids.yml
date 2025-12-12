@@ -1,5 +1,3 @@
----
-
 - id: baj-ids
   jq: |-
     def isa:
@@ -11,11 +9,11 @@
       def addIsa: has("id") as $id | (.id | [type, $id, length] | isa) as $isa | . + { $isa };
       map(addIsa) | group_by(.isa) | map({ (first.isa): map(del(.isa)) }) | add
       | reduce ("root", "sup") as $i (.; if has($i) | not then .[$i] = [{ id: []}] end);
-    
+
     def useindex: "i";
     def addindex: to_entries | map(.value + { (useindex): .key });
     def remindex: sort_by(.[useindex]) | map(del(.[useindex]));
-    
+
     def sameType(t): (map(type) | unique) == [t | type];
     # merge list of object [ o, ... ]
     def merge:
@@ -30,17 +28,16 @@
         reduce (first | to_entries)[] as $e (last; .[$e.key] = ([.[$e.key], $e.value] | merge));
       # merge all objects using merge two objects
       reduce .[] as $i ({}; [., $i] | merge);
-    
+
     def check:
       (.sup | map(.id) | add) - (.sub | keys) | unique
       | if length > 0 then "bad id \(@json)\n" | halt_error(1) else empty end;
-    
+
     def main:
       addindex | isa | .sub |= INDEX(.[]; .id)
       | (.sub | keys) as $subs | .root |= map(.id = $subs) | .sub as $sub | .alien as $alien | check
       , reduce (.root + .sup)[] as $sup ($sub; reduce $sup.id[] as $id (.; .[$id] |= ([., ($sup | del(.id))] | merge)))
       | map(.) + $alien | remindex;
-    
+
     main
-  sh: |-
-    jq -r "$jq"
+  sh: jq -r "$jq"
