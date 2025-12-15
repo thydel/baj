@@ -1,4 +1,4 @@
-- id: baj-m4
+- id: baj:bm4
   jq: |-
     def head: "m4_changequote(«,»)m4_changecom()m4_dnl";
     def m4: .[][] | to_entries[] | "m4_define(«\(.key)»,«\(.value | @json[1:-1])»)m4_dnl";

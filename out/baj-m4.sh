@@ -1,6 +1,6 @@
-baj-m4 () 
+baj:bm4 () 
 { 
-    local id='baj-m4';
+    local id='baj:bm4';
     local jq='def head: "m4_changequote(«,»)m4_changecom()m4_dnl";
 def m4: .[][] | to_entries[] | "m4_define(«\(.key)»,«\(.value | @json[1:-1])»)m4_dnl";
 def main: if map(has("m4")) | any then group_by(has("m4")) | (last | m4), first end;

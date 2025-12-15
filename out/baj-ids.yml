@@ -1,4 +1,4 @@
-- id: baj-ids
+- id: baj:dist
   jq: |-
     def isa:
       def isa:

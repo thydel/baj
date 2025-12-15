@@ -1,0 +1,74 @@
+- id:
+  ns: baj
+
+- id: [ loop, args, map ]
+  is: [ fa ]
+
+- id: opts
+  sh: |-
+    # Use «local -A opts; local args cont; opts "$@"» in caller
+    local opt val tmp i; args=()
+    until [[ $# -eq 0 ]]; do
+        case "$1" in
+            --) shift; break;;
+            --*=*) opt="${1%%=*}"; val="${1#*=}"; opts["${opt:2}"]="$val"; shift;;
+            --*) opts["${1:2}"]="1"; shift;;
+            -[0-9]*) args+=("$1"); shift;;
+            -) args+=("$1"); shift;;
+            -*) tmp=${1:1}
+                for ((i = 0; i < ${#tmp}; i++ )); do
+                    opt="${tmp:$i:1}"
+                    opts[$opt]=$((opts[$opt] + 1))
+                done
+                shift;;
+            *) args+=("$1"); shift;;
+        esac
+    done; cont=("$@")
+
+- m4:
+    SELF: |-
+      jq "$jq" $@
+    OPTS: |-
+      local -A opts; local args cont; opts "«$»@"
+
+- { id: fail, sh: 'unset -v fail; : "${fail:?${FUNCNAME[1]} $@}"' }
+- { id: loop, sh: 'local i; for i in "${@:2}"; do $1 "$i"; done' }
+- { id: list, sh: loop echo "$@" }
+- { id: args, sh: 'mapfile -t; ((${#MAPFILE[@]} > 0)) && "${@:-echo}" "${MAPFILE[@]}"' }
+- { id: map, sh: 'while read; do "${@:-echo}" "$REPLY"; done' }
+
+- { id: self, sh: jq "$jq" "$@" }
+- { id: tst, sh: '< ${1:?}' }
+- { id: txt1, sh: 'header; asjs | bm4 | dist | emit' }
+- { id: txt, sh: 'loop $ns:tst "$@" && cat "$@" | txt1' }
+
+- { id: nss1, jq: '.[].ns // empty', sh: '< ${1:?} yq -oj | self -r' }
+- { id: nss, sh: 'loop nss1 "$@"' }
+
+- { id: listid1, sh: 'compgen -c ${1:?}:; compgen -c ns:${1:?}' }
+- { id: listid, sh: 'loop listid1 "$@"' }
+
+- { id: ids1, jq: '.[].id', sh: 'eval ${1:?} src | SELF(-r)' }
+- { id: ids, sh: loop ids1 "$@" }
+
+- { id: fn1, sh: 'listid1 ${1:?} | args declare -f' }
+- { id: fn, sh: loop fn1 "$@" }
+- { id: fns, sh: ids "$@" | args def }
+
+- { id: def1, sh: '[[ -v BASH_ALIASES[${1:?}] ]] || fail $1 not an alias && declare -f ${BASH_ALIASES[$1]}' }
+- { id: def, sh: loop def1 "$@" }
+
+- { id: nsp, sh: 'compgen -c ns:${1:?} > /dev/null' }
+- { id: aliases, sh: loop aliases1 "$@" }
+
+- id: aliases1
+  jq: |-
+    $ARGS.positional | [.[:$n], .[$n:]] | transpose[] | select(last | test("\($ns):")) | first
+  sh: |-
+    nsp ${1:?} || fail not a ns; self -nr --arg ns $1 --argjson n ${#BASH_ALIASES[@]} --args "${!BASH_ALIASES[@]}" "${BASH_ALIASES[@]}"
+
+- id: forget
+  sh: |-
+    . <($ns:listid1 ${1:?} | args echo unset -f; nsp $1 && { aliases $1 | args echo unalias; echo unalias $1; })
+
+- { id: load, sh: forget $(nss "$@"); . <($ns:txt "$@") }

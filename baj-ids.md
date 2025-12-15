@@ -43,7 +43,7 @@ For example:
   note: ...
 ```
 
-# id baj-ids
+# id baj:dist
 
 ```jq
 def isa:

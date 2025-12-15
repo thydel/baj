@@ -1,6 +1,6 @@
-baj-ids () 
+baj:dist () 
 { 
-    local id='baj-ids';
+    local id='baj:dist';
     local jq='def isa:
   def isa:
     if .[1] | not then "alien"

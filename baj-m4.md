@@ -1,4 +1,4 @@
-# id baj-m4
+# id baj:bm4
 
 The `baj-m4` function serves as a preprocessor that converts JSON
 input streams into `m4(1)` macro definitions. It is designed to safely
