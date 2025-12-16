@@ -1,5 +1,5 @@
 - id:
-  ns: baj
+  ns: bajl
 
 - id: [ loop, args, map ]
   is: [ fa ]
@@ -29,7 +29,7 @@
     SELF: |-
       jq "$jq" $@
     OPTS: |-
-      local -A opts; local args cont; opts "«$»@"
+      local -A opts; local args cont; opts "$«@»"
 
 - { id: fail, sh: 'unset -v fail; : "${fail:?${FUNCNAME[1]} $@}"' }
 - { id: loop, sh: 'local i; for i in "${@:2}"; do $1 "$i"; done' }
@@ -48,7 +48,7 @@
 - { id: listid1, sh: 'compgen -c ${1:?}:; compgen -c ns:${1:?}' }
 - { id: listid, sh: 'loop listid1 "$@"' }
 
-- { id: ids1, jq: '.[].id', sh: 'eval ${1:?} src | self -r' }
+- { id: ids1, jq: '.[].id', sh: 'eval ${1:?} src | SELF(-r)' }
 - { id: ids, sh: loop ids1 "$@" }
 
 - { id: fn1, sh: 'listid1 ${1:?} | args declare -f' }
