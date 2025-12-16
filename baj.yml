@@ -58,16 +58,19 @@
 - { id: def1, sh: '[[ -v BASH_ALIASES[${1:?}] ]] || fail $1 not an alias && declare -f ${BASH_ALIASES[$1]}' }
 - { id: def, sh: loop def1 "$@" }
 
-- { id: nsp, sh: 'compgen -c ns:${1:?} > /dev/null' }
-- { id: aliases, sh: loop aliases1 "$@" }
+- { id: ns, sh: '(($# == 0)) || fail too many args; compgen -c ns: | cut -d: -f2' }
 
+- { id: nsp, sh: 'compgen -c ns:${1:?} > /dev/null' }
+
+- { id: aliases, sh: loop aliases1 "$@" }
 - id: aliases1
   jq: |-
     $ARGS.positional | [.[:$n], .[$n:]] | transpose[] | select(last | test("\($ns):")) | first
   sh: |-
     nsp ${1:?} || fail not a ns; self -nr --arg ns $1 --argjson n ${#BASH_ALIASES[@]} --args "${!BASH_ALIASES[@]}" "${BASH_ALIASES[@]}"
 
-- id: forget
+- { id: forget, sh: 'loop forget1 "$@"' }
+- id: forget1
   sh: |-
     . <($ns:listid1 ${1:?} | args echo unset -f; nsp $1 && { aliases $1 | args echo unalias; echo unalias $1; })
 
