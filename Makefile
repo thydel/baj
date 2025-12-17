@@ -11,9 +11,9 @@ ns ?= baj
 
 [ := out/baj-core.sh baj-lib.yml
 ] := out/baj.sh
-$]: baj = < $*-core.md $*-boot.sh md2yml | out/$*-core.sh $(ns):init
+$]: baj-core = < $*-core.md $*-boot.sh md2yml | out/$*-core.sh $(ns):init
 $]: baj-lib = < $*-lib.yml out/$*-core.sh $(ns):main
-$]: $] = { $(baj); $(baj-lib); }
+$]: $] = { $(baj-core); $(baj-lib); }
 $]: out/%.sh : $[; $($@) > $@
 
 out/baj-core.sh: baj-boot.sh baj-core.md; < $(lastword $^) $< md2sh | install /dev/stdin $@
