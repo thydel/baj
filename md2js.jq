@@ -1,18 +1,12 @@
 #!/usr/bin/env -S jq -f
 
+# pandoc -t json | md2js.jq
+
 # Helper: Extract plain text from Pandoc Header inlines.
 # Note: Pandoc 'Space' objects have null .c, so we replace them with " ".
 def txt: .c[2] | map(.c // " ") | join("");
 
-def md2yml:
-  .blocks | reduce .[] as $b ([];
-    if $b.t == "Header" then ($b | txt) as $h |
-      if $h | startswith("id ") then . + [{id: $h[3:]}] else . + [null] end
-    elif $b.t == "CodeBlock" and .[-1] then
-      .[-1][$b.c[0][1][0] // "txt"] = $b.c[1]
-    end) | map(values);
-    
-def md2yml_with_comments:
+def md2js:
   .blocks | reduce .[] as $b (
     # Initialize with an empty list.
     # We treat this list as a stack where .[-1] is the "active" object.
@@ -45,4 +39,4 @@ def md2yml_with_comments:
   # Final Cleanup: Remove the 'null' separators we used to break context.
   | map(select(.));
 
-md2yml
+md2js

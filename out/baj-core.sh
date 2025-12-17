@@ -1,16 +1,8 @@
-baj:bm4 () 
-{ 
-    local id='baj:bm4';
-    local jq='def head: "m4_changequote(«,»)m4_changecom()m4_dnl";
+baj:bm4 () { local ns=baj; local id='bm4'; local jq='def head: "m4_changequote(«,»)m4_changecom()m4_dnl";
 def m4: .[][] | to_entries[] | "m4_define(«\(.key)»,«\(.value | @json[1:-1])»)m4_dnl";
 def main: if map(has("m4")) | any then group_by(has("m4")) | (last | m4), first end;
-head, (inputs | main)';
-    jq -nr "$jq" | m4 -P
-}
-baj:dist () 
-{ 
-    local id='baj:dist';
-    local jq='def isa:
+head, (inputs | main)'; jq -nr "$jq" | m4 -P; }
+baj:dist () { local ns=baj; local id='dist'; local jq='def isa:
   def isa:
     if .[1] | not then "alien"
     elif (first | IN("array", "null")) and last == 0 then "root"
@@ -49,37 +41,17 @@ def main:
   , reduce (.root + .sup)[] as $sup ($sub; reduce $sup.id[] as $id (.; .[$id] |= ([., ($sup | del(.id))] | merge)))
   | map(.) + $alien | remindex;
 
-main';
-    jq -r "$jq"
-}
-baj:asjs () 
-{ 
-    local id='baj:asjs';
-    if test -v Y2J_USE_PYTHON; then
-        python3 -c 'import sys, yaml, json; print(json.dumps(yaml.safe_load(sys.stdin.read())))';
-    else
-        yq -oj "$@";
-    fi
-}
-baj:clean () 
-{ 
-    local id='baj:clean';
-    local i;
-    for i in ${BASH_ALIASES[@]};
-    do
-        if [[ $i =~ ${1:?}: ]]; then
-            unalias "${i/jqsh:}";
-        fi;
-    done;
-    for i in $(compgen -c $1);
-    do
-        unset $i;
-    done
-}
-baj:emit () 
-{ 
-    local id='baj:emit';
-    local jq='def w($s): $s + . + $s;
+main'; jq -r "$jq"; }
+baj:asjs () { local ns=baj; local id='asjs'; if test -v Y2J_USE_PYTHON;
+then python3 -c 'import sys, yaml, json; print(json.dumps(yaml.safe_load(sys.stdin.read())))';
+else yq -oj "$@"; fi; }
+baj:mk-alias () { local ns=baj; local id='mk-alias'; : ${2:?}
+local -n a=BASH_ALIASES;
+if [[ ! -v a[$1] || -v a[$1] && "${a[$1]}" == "$2:${1}$3" ]];
+then alias $1="$2:${1}$3";
+else echo warning $(alias $1) not redefined as "'$2:${1}$3'" >&2;
+fi; }
+baj:emit () { local ns=baj; local id='emit'; local jq='def w($s): $s + . + $s;
 def q: w("\u0027");
 def qq: w("\"");
 def at($n): "${@:\($n)}" | qq;
@@ -87,7 +59,7 @@ def at($n): "${@:\($n)}" | qq;
 def aliases:
   def is($is): has("is") and IN($is; .is[]);
   def fa: if is("fa") then " " else "" end | @sh;
-  .[] | select(has("id") and has("ns")) | "baj:mk-alias \(.id) \(.ns) \(fa)";
+  .[] | select(has("id") and has("ns")) | "\($ns):mk-alias \(.id) \(.ns) \(fa)";
 
 def ns:
   map(.ns) | unique[]
@@ -119,53 +91,10 @@ def funs: .[] | if has("id") then "\(.ns):\(.id) () { \(vars); \(.sh); }" end;
 def tail:
   group_by(.ns) | map("\(first.ns):src () { <<< \(. | @json | @sh) jq; }")[];
 
-aliases, funs, ns, tail';
-    jq -r "$jq"
-}
-baj:header () 
-{ 
-    local id='baj:header';
-    echo shopt -s expand_aliases;
-    declare -f baj:mk-alias
-}
-baj:init () 
-{ 
-    local id='baj:init';
-    baj:header;
-    baj:sys;
-    baj:pipe
-}
-baj:main () 
-{ 
-    local id='baj:main';
-    baj:header;
-    baj:pipe
-}
-baj:mk-alias () 
-{ 
-    local id='baj:mk-alias';
-    : ${2:?};
-    local -n a=BASH_ALIASES;
-    if [[ ! -v a[$1] || -v a[$1] && "${a[$1]}" == "$2:${1}$3" ]]; then
-        alias $1="$2:${1}$3";
-    else
-        echo warning $(alias $1) not redefined as "'$2:${1}$3'" 1>&2;
-    fi
-}
-baj:pipe () 
-{ 
-    local id='baj:pipe';
-    baj:asjs | baj:bm4 | baj:dist | baj:emit
-}
-baj:sys () 
-{ 
-    local id='baj:sys';
-    local funs=(asjs bm4 dist emit mk-alias pipe header clean main);
-    local fun;
-    for fun in ${funs[@]};
-    do
-        echo baj:mk-alias $fun baj;
-        declare -f baj:$fun;
-    done
-}
+aliases, funs, ns, tail'; jq -r "$jq" --arg ns $ns; }
+baj:clean () { local ns=baj; local id='clean'; local i; for i in ${BASH_ALIASES[@]/$ns:clean}; do if [[ $i =~ ${1:?}: ]] then unalias "${i/$ns:}"; fi; done
+for i in $(compgen -c $1); do unset $i; done; }
+baj:header () { local ns=baj; local id='header'; echo shopt -s expand_aliases; declare -f $ns:mk-alias; }
+baj:init () { local ns=baj; local id='init'; $ns:header; $ns:asjs | $ns:dist | $ns:emit; }
+baj:main () { local ns=baj; local id='main'; $ns:header; $ns:asjs | $ns:bm4 | $ns:dist | $ns:emit; }
 eval "$@"
