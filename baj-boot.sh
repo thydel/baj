@@ -19,10 +19,10 @@ def f($b):
 md2js () { pandoc -t json | self | header; }
 
 jq[js2sh]='
-def ns: "local ns=\($ns)";
 def var: "local \(.key)=\(.value | @sh)";
-def vars: del(.sh) | to_entries | map(var) | join("; ");
-def fun: select(.id) | "\($ns):\(.id) () { \(ns); \(vars); \(.sh // true); }";
+def vars: del(.id, .sh) | to_entries | map(var);
+def body: vars + [ .sh // true ] | join("; ");
+def fun: select(.id) | "\($ns):\(.id) () { \(body); }";
 .[] | fun'
 js2sh () { self -r --arg ns ${ns:-baj}; }
 

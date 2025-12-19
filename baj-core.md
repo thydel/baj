@@ -161,15 +161,23 @@ fi
 def w($s): $s + . + $s;
 def q: w("\u0027");
 def qq: w("\"");
+def at: "$@" | qq;
 def at($n): "${@:\($n)}" | qq;
 
+def is($is): has("is") and IN($is; .is[]);
+
+def ky: map(select([has("ky", "is")] | all)) | map(map(.) | combinations);
+def byky: ky | group_by(first) | map({ (first | first): map(last) }) | add;
+def byis: ky | group_by(last) | map({ (first | last): map(first) }) | add;
+
 def aliases:
-  def is($is): has("is") and IN($is; .is[]);
   def fa: if is("fa") then " " else "" end | @sh;
-  .[] | select(has("id") and has("ns")) | "\($ns):mk-alias \(.id) \(.ns) \(fa)";
+  .in[] | select(has("id") and has("ns")) | "\($ns):mk-alias \(.id) \(.ns) \(fa)";
+
+def noalias: .in[] | select(is("na")) | "unalias \(.id)";
 
 def ns:
-  map(.ns) | unique[]
+  .in | map(.ns) | unique[]
   | "alias \(.)=ns:\(.); ns:\(.) () { \(.):${1:?} \(at(2)); }";
 
 def is_sh_var:
@@ -187,23 +195,30 @@ def sh_var:
     else "local \(.key)=\(.value | @sh)" end;
 
 def var: if is_sh_var then sh_var else js_var end;
-def vars: del(.sh) | to_entries | map(var) | join("; ");
+def novars($kys): (null | { sh, ns, id, is } | keys + $kys.nv) as $k | del(.[$k[]]);
+#def novars($kys): del(.sh, .ns, .id, .is, .tt);
+def vars($kys): novars($kys) | to_entries | map(var);
 
-def funs: .[] | if has("id") then "\(.ns):\(.id) () { \(vars); \(.sh); }" end;
+def sh: .sh // "self \(at)";
+def body($kys): vars($kys) + [sh] | join("; ");
 
-def tail:
-  group_by(.ns) | map("\(first.ns):src () { <<< \(. | @json | @sh) jq; }")[];
+def funs:
+  .kys as $kys
+  | .in[] | select(has("id")) | "\(.ns):\(.id) () { \(body($kys)); }";
 
-aliases, funs, ns, tail
+def src: .in | group_by(.ns) | map("\(first.ns):src () { <<< \(. | @json | @sh) jq; }")[];
+
+{ in: ., kys: byis } | aliases, funs, ns, noalias, src
 ```
 
 ```sh
-jq -r "$jq" --arg ns $ns
+jq -r "$jq" --arg ns ${FUNCNAME%%:*}
 ```
 
 ## id clean
 
 ```sh
+local ns=${FUNCNAME%%:*}
 local i; for i in ${BASH_ALIASES[@]/$ns:clean}; do if [[ $i =~ ${1:?}: ]] then unalias "${i/$ns:}"; fi; done
 for i in $(compgen -c $1); do unset $i; done
 ```
@@ -211,17 +226,19 @@ for i in $(compgen -c $1); do unset $i; done
 ## id header
 
 ```sh
-echo shopt -s expand_aliases; declare -f $ns:mk-alias
+echo shopt -s expand_aliases; declare -f ${FUNCNAME%%:*}:mk-alias
 ```
 
 ## id init
 
 ```sh
+local ns=${FUNCNAME%%:*}
 $ns:header; $ns:asjs | $ns:dist | $ns:emit
 ```
 
 ## id main
 
 ```sh
+local ns=${FUNCNAME%%:*}
 $ns:header; $ns:asjs | $ns:bm4 | $ns:dist | $ns:emit
 ```

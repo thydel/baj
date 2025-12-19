@@ -1,0 +1,18 @@
+- id:
+  ns: path
+
+- id:
+  sh: |-
+    : ${1:?}; PATH=$(self -nr --args "$@")
+
+- m4:
+    EP: |-
+      (env.PATH / ":") as $p
+
+- id: addp
+  jq: |-
+    EP | ($ARGS.positional - $p) + $p | join(":")
+
+- id: delp
+  jq: |-
+    EP | $p - $ARGS.positional | join(":")
