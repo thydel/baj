@@ -61,13 +61,13 @@ def aliases:
   def fa: if is("fa") then " " else "" end | @sh;
   .[] | select(has("id") and has("ns")) | "\($ns):mk-alias \(.id) \(.ns) \(fa)";
 
-def ns:
+def ns1:
   map(.ns) | unique[]
   | "alias \(.)=ns:\(.); ns:\(.) () { \(.):${1:?} \("${@:2}" | qq); }";
 
-def ns1:
+def ns:
   map(.ns) | unique[]
-  | "alias \(.)=ns:\(.); ns:\(.) () { \(.):${1:?} \(at(2) | qq); }";
+  | "alias \(.)=ns:\(.); ns:\(.) () { \(.):${1:?} \(at(2)); }";
 
 def is_sh_var:
    def iterable: type | IN("array", "object");
