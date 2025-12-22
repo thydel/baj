@@ -1,5 +1,10 @@
 **Declarative Bash function libraries, compiled to one file and streamable over SSH**
 
+```bash
+url=https://raw.githubusercontent.com/thydel/baj/2025-12-22-a/cmd/baj.sh
+source <(curl -fsSL $url)
+```
+
 <!-- markdown-toc-generate-toc -->
 <!-- https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1036359 -->
 <!--
