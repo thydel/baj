@@ -1,2 +1,5 @@
 # baj
-baj
+
+```bash
+make
+```

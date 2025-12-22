@@ -1,0 +1,52 @@
+---
+
+- { ky: [ tt ], is: [ nv ] }
+
+- id:
+  ns: jqsh-ansible 
+
+- id: convert-json-out
+  jq: |-
+    map({ node } + { out: (.stdout_lines | add | fromjson) })
+
+- id: txt-out-to-md
+  jq: |-
+    .[] | "# \(.node)", "", "```", .stdout_lines[], "```", ""
+  sh: self -r
+
+- id: fn-ansible
+  jq: |-
+    .. | .results? // empty | map({ node } + (.ansible_facts.command | { rc, stdout_lines }))
+  sh: |-
+    ANSIBLE_STDOUT_CALLBACK=json ansible-playbook <(echo "$js") "$@" | self
+  tt: |-
+    <<< id fn-ansible -bl mapa2,bastion1
+    # as root, even if ssh node -l root fail (provided `become` works)
+    with-lib a-lib -- a-func | fn-ansible -bl a-node -CD
+  js:
+    - hosts: all
+      gather_facts: false
+      vars:
+        rol: &rol
+          delegate_to: localhost
+          run_once: true
+      tasks:
+        - set_fact:
+            stdin: '{{ lookup(file, stdin) }}'
+          vars:
+            file: file
+            stdin: /dev/stdin
+          <<: *rol
+        - command:
+            argv: [ bash ]
+          args:
+            chdir: '{{ dir | default(omit) }}'
+            stdin: '{{ stdin }}'
+          failed_when: false
+          register: command
+        - <<: *rol
+          set_fact:
+            command: '{{ hostvars[node].command }}'
+          loop: '{{ ansible_play_hosts_all }}'
+          loop_control:
+            loop_var: node
