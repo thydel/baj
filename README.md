@@ -12,6 +12,7 @@ source <(curl -fsSL $url)
 -->
 
 -   [What is baj?](#what-is-baj)
+-   [See also](#see-also)
 -   [Core idea](#core-idea)
 -   [One-file usage](#one-file-usage)
 -   [Dual usage model](#dual-usage-model)
@@ -44,6 +45,11 @@ source <(curl -fsSL $url)
 No installation, no packaging, no deployment on remote nodes.
 
 ---
+
+# See also
+
+- [doc/architecture.md][]
+- [doc/bootstrap.md][]
 
 # Core idea
 
@@ -341,3 +347,11 @@ This enables:
 This is why aliases are part of baj’s compilation model, not an afterthought.
 
 ---
+
+<!--
+find -maxdepth 1 -type f | cut -c 3- | grep -v \~ | jq -Rr '"[\(.)]: \(.) \u0027sibling file\u0027", "- [\(.)][]"' | env LANG=C sort
+find doc -type f | grep -v \~ | jq -Rr '"[\(.)]: \(.) \u0027sibling file\u0027", "- [\(.)][]"' | env LANG=C sort
+-->
+
+[doc/architecture.md]: doc/architecture.md 'sibling file'
+[doc/bootstrap.md]: doc/bootstrap.md 'sibling file'
