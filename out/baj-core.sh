@@ -73,9 +73,13 @@ def ns:
   .in | map(.ns) | unique[]
   | "alias \(.)=ns:\(.); ns:\(.) () { \(.):${1:?} \(at(2)); }";
 
-def is_sh_var:
+def is_sh_var1:
    def iterable: type | IN("array", "object");
 .value | (iterable | not) or (map(.) | unique | map(iterable | not) | all);
+
+def is_sh_var:
+   def iterable: type | IN("array", "object");
+.key != "js" and (.value | (iterable | not) or (map(.) | unique | map(iterable | not) | all));
 
 def js_var: "local \(.key)=\(.value | @json | @sh)";
 def sh_array_var: "local -a \(.key)=(\(.value | map(@sh) | join(" ")))";

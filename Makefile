@@ -41,7 +41,7 @@ out/baj-core.sh: baj-boot.sh baj-core.md | out; < $(lastword $^) $< md2sh | inst
 out cmd:; mkdir -p $@
 
 bin := /usr/local/bin
-cmds := baj $(libs)
+cmds := baj $(libs) with
 installed := $(cmds:%=$(bin)/%.sh)
 install: phony $(installed)
 $(bin)/%.sh: cmd/%.sh; install $< $@
