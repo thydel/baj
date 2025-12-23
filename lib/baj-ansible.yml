@@ -3,7 +3,7 @@
 - { ky: [ tt ], is: [ nv ] }
 
 - id:
-  ns: jqsh-ansible 
+  ns: baja
 
 - id: convert-json-out
   jq: |-
