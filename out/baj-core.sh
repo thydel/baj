@@ -73,10 +73,6 @@ def ns:
   .in | map(.ns) | unique[]
   | "alias \(.)=ns:\(.); ns:\(.) () { \(.):${1:?} \(at(2)); }";
 
-def is_sh_var1:
-   def iterable: type | IN("array", "object");
-.value | (iterable | not) or (map(.) | unique | map(iterable | not) | all);
-
 def is_sh_var:
    def iterable: type | IN("array", "object");
 .key != "js" and (.value | (iterable | not) or (map(.) | unique | map(iterable | not) | all));
