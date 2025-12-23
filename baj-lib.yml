@@ -129,3 +129,7 @@
 
 - { id: as-lib, sh: warn; lib "$@" }
 - { id: as-cmd, sh: as-lib "$@"; echo 'eval "$@"' }
+
+- id: yml2sh
+  sh: |
+    load ${1:?}; nss1 $1 | args as-cmd
