@@ -182,7 +182,7 @@ def ns:
 
 def is_sh_var:
    def iterable: type | IN("array", "object");
-.value | (iterable | not) or (map(.) | unique | map(iterable | not) | all);
+.key != "js" and (.value | (iterable | not) or (map(.) | unique | map(iterable | not) | all));
 
 def js_var: "local \(.key)=\(.value | @json | @sh)";
 def sh_array_var: "local -a \(.key)=(\(.value | map(@sh) | join(" ")))";
