@@ -32,6 +32,22 @@
   tt: |
     local -A opts; local args cont; opts "$@"
 
+- id: md2js
+  jq:
+    header: |-
+      [{ m4: { ME: "\($ns)" }}, { id, ns: "ME" }] + input
+    md2js: |-
+      def txt: .c[2] | map(.c // " ") | join("");
+      def f($b):
+        if $b.t == "Header" then ($b | txt) as $h |
+          if $h | startswith("id ") then . + [{id: $h[3:]}] else . + [null] end
+        elif $b.t == "CodeBlock" and .[-1] then
+          .[-1][$b.c[0][1][0] // "txt"] = $b.c[1]
+        end;
+      .blocks | reduce .[] as $b ([]; f($b)) | map(values)
+  sh: |-
+    pandoc -t json | jq "${jq[md2js]}" | jq "${jq[header]}" -n --arg ns ${1:?}
+
 - m4:
     NS: |-
       ${FUNCNAME%%:*}
