@@ -196,11 +196,10 @@ def sh_var:
 
 def var: if is_sh_var then sh_var else js_var end;
 def novars($kys): (null | { sh, ns, id, is } | keys + $kys.nv) as $k | del(.[$k[]]);
-#def novars($kys): del(.sh, .ns, .id, .is, .tt);
 def vars($kys): novars($kys) | to_entries | map(var);
 
 def sh: .sh // "self \(at)";
-def body($kys): vars($kys) + [sh] | join("; ");
+def body($kys): vars($kys) + [sh | rtrimstr("\n")] | join("; ");
 
 def funs:
   .kys as $kys
