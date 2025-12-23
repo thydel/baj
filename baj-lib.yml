@@ -1,12 +1,19 @@
+---
+
+  # all id are in namespace `bajl`
 - id:
   ns: bajl
 
+  # listed id are «funarg» macros (.i.e bash aliases ending in ' ')
 - id: [ loop, args, map ]
   is: [ fa ]
 
+  # aliases of all listed id will be unaliased after bash sourced
+  # .i.e. you can use aliases in lib src (this file) but not in bash REPL after the resulting bash is sourced
 - id: [ txt1, nss1, fn1, listid1, fn1, def1, ids1, forget1, lib1, exp1, warn, optal ]
   is: [ na ]
 
+  # listed object keys are not included as a local var
 - { ky: [ tt ], is: [ nv ] }
 
 - id: opts
