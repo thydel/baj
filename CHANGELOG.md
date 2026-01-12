@@ -2,6 +2,10 @@
 
 - Add a new tag
 
+```bash
+cmnt='Space evol ssp'
+```
+
 # 2025-12-22
 
 - Use to add a new tag
