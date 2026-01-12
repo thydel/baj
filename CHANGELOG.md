@@ -1,3 +1,11 @@
+# 2026-01-12
+
+- Add a new tag
+
+```bash
+cmnt='infra-procv-2026'
+```
+
 # 2025-12-24
 
 - Add a new tag
