@@ -106,7 +106,9 @@ local i; for i in ${BASH_ALIASES[@]/$ns:clean}; do if [[ $i =~ ${1:?}: ]] then u
 for i in $(compgen -c $1); do unset $i; done; }
 baj:header () { echo shopt -s expand_aliases; declare -f ${FUNCNAME%%:*}:mk-alias; }
 baj:init () { local ns=${FUNCNAME%%:*}
-$ns:header; $ns:asjs | $ns:dist | $ns:emit; }
+$ns:header; $ns:asjs | $ns:dist | $ns:emit
+# kluge to hide to easy to collide name
+echo unalias init clean; }
 baj:main () { local ns=${FUNCNAME%%:*}
 $ns:header; $ns:asjs | $ns:bm4 | $ns:dist | $ns:emit; }
 eval "$@"

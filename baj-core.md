@@ -233,6 +233,8 @@ echo shopt -s expand_aliases; declare -f ${FUNCNAME%%:*}:mk-alias
 ```sh
 local ns=${FUNCNAME%%:*}
 $ns:header; $ns:asjs | $ns:dist | $ns:emit
+# kluge to hide too easy to collide name
+echo unalias init clean
 ```
 
 ## id main
