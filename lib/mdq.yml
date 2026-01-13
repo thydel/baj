@@ -1,0 +1,59 @@
+---
+
+- id:
+  ns: umdq
+
+- ky: [ tt ]
+  is: [ nv ]
+
+- { m4: { JQ: jq "$jq" $@ }}
+
+- id: install
+  is: [ na ]
+  sh: cargo install --git https://github.com/yshavit/mdq
+
+  # - Generate json from json then convert to YAML
+  # - Easy but don't allow YAML embedding
+- id: md2yml-v1
+  js: &js
+    bash: sh
+    json: js
+    txt: tt
+    sh: tt
+  jq: |-
+    def item:
+      .section | (.title / " ")[-1] as $id
+      | .body | map(.code_block // empty | { (.language): .code }) | add as $keys
+      | { $id } + $keys;
+    def filter: .items | map(item);
+    def head: first | if .id | test("^head") then .json | fromjson else [.] end;
+    def norm: with_entries(.key |= ($map[.] // .));
+    filter | head + .[1:] | map(norm)
+  sh: |
+    mdq -o json '# /^(head|id)/' | JQ(--argjson map "$js") | yq -P
+  tt: |-
+    < ssp.md md2yml-v1
+
+  # - Generate YAML from json
+  # - Must take care of indentation and block scalar type
+  # - But can now embed YAML
+- id: md2yml
+  js: *js
+  jq: |-
+    def item:
+      .section as { $title, $body }
+      | $body | map(.code_block // empty | { (.language | $map[.] // .): (.code / "\n") }) | add as $keys
+      |  ($title / " ") | { type: .[0], id: .[1] } + { $keys };
+    def print:
+      def id:
+        def each:
+          def yml: .value | map("  " + .);
+          def others:[ "  \(.key): |-" ] + (.value | map("    " + .));
+          if .key == "yml" then yml else others end;
+          [ "- id: \(.id)" ] + (.keys | to_entries | map(each) | add);
+      if .type == "raw" then .keys.yml else id end  | join("\n");
+    .items | map(item) | map(print) | join("\n\n")
+  sh: |
+    mdq -o json '# /^(raw|id)/' | JQ(-r --argjson map "$js")
+  tt: |-
+    < ssp.md md2yml
