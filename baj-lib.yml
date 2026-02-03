@@ -73,8 +73,10 @@
 
 - { id: self, sh: jq "$jq" "$@" }
 - { id: tst, sh: '< ${1:?}' }
-- { id: txt, sh: 'loop tst "$@" && cat "$@" | txt1' }
-- { id: txt1, sh: 'header; asjs | bm4 | dist | emit' }
+#- { id: txt, sh: 'loop tst "$@" && cat "$@" | txt1' }
+#- { id: txt1, sh: 'header; asjs | bm4 | dist | emit' }
+- { id: txt, sh: 'loop tst "$@" && loop txt1 "$@"' }
+- { id: txt1, sh: 'header; < ${1:?} asjs | bm4 | dist | emit' }
 
 - { id: nss, sh: 'loop nss1 "$@"' }
 - { id: nss1, jq: '.[].ns // empty', sh: '< ${1:?} yq -oj | self -r' }

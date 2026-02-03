@@ -1,0 +1,50 @@
+- id:
+  ns: llmfs
+
+- id: files
+  sh: |
+    [[ "$1" == -z ]] && jq -sR '(./"\u0000")[:-1][]' || jq -R
+  
+- id: conf
+  jq: |-
+    { $mode, file: . }
+  sh: |
+    self -c --arg mode ${1:-text}
+
+- id: b64
+  sh: sed /${1:-^}/s/text/b64/
+
+- id: content
+  js:
+    text: cat
+    b64: base64
+  jq: |-
+    "< \(.file) \($map[.mode]) | jq -nR [inputs]"
+  sh: |
+    while read; do echo $REPLY; <<< $REPLY self -r --argjson map "$js" | dash; done
+
+- id: merge
+  jq: |
+    try repeat([input, input]) | first + { lines: last }
+  sh: self -n
+
+- id: core
+  jq: |-
+    { llmfs: "core", files: . }
+  sh: self -s "$@"
+    
+- id: enc
+  sh: content | merge | core "$@"
+
+- id: indir
+  jq: |
+    .files[].file |= "\($dir)/\(.)"
+  sh: self --arg dir ${1:?}
+
+- id: dec
+  js:
+    text: cat
+    b64: base64 -d
+  jq: |-
+    .files[] | ["<<-\"!\" \($map[.mode]) | install --backup=t /dev/stdin \(.file | @sh)"] + (.lines | map("\t" + .)) + ["!"] | .[]
+  sh: self -r --argjson map "$js"

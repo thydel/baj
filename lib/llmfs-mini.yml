@@ -1,0 +1,17 @@
+- id:
+  ns: llmfs
+
+- id: mini
+  jq: |-
+    { llmfs: "mini", files: . }
+  sh: self -s "$@"
+    
+- id: enc
+  jq: |-
+    { file: input, lines: [ inputs ] }
+  sh: while read; do { <<< "$REPLY" jq -R; < "$REPLY" jq -R; } | self -n; done | mini "$@"
+
+- id: dec
+  jq: |-
+    .files[] | ["<<-\"!\" > \(.file | @sh) cat"] + (.lines | map("\t" + .)) + ["!"] | .[]
+  sh: self -r
