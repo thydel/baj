@@ -1,0 +1,207 @@
+- { id: null, ns: pa }
+
+- id: parsarg
+  sh: |-
+    # states=(START ARGS OPT $ANY)
+    # states_patterns=($ANY)
+    # current_arg_patterns=($VAL $ARG $ANY $CONT $ARGS $SHORT $LONG $ASSIGN)
+    # next_arg_patterns=($END $VAL)
+    # next_arg_types=(END VAL $ANY)
+    #
+    # DFA style "$@" parsing (with read ahead)
+    # Match ($state, "$1", $next) to decide what to do of "$1"
+    
+    shopt -q extglob || { shopt -s extglob; trap 'shopt -u extglob' RETURN; }
+    local -a tmp
+    local opt next ctx
+    local state=START
+    
+    # Definitions
+    local END='@(-[!0-9]*|)' 
+    local ARG='!(++)' 
+    local VAL='@(-|[!-]*|-[0-9]*)' 
+    local NUM='-[0-9]*' 
+    local ANY='*' 
+    local CONT=++ 
+    local ARGS=-- 
+    local SHORT='-[!-]*' 
+    local LONG='--*'
+    # New Pattern: Matches --k=v or -k=v, but ignores -1=v (nums)
+    local ASSIGN='@(--*=*|-[!0-9]*=*)'
+    
+    until [[ $# -eq 0 ]]; do
+        [[ "$debug" ]] && echo $# "$@"
+        
+        # Lookahead Logic
+        if   [[ "$2" == $END ]]; then next=END;
+        elif [[ "$2" == $VAL ]]; then next=VAL;
+        else next=ERROR; fi
+        
+        ctx="$state^$1^$next"
+        [[ "$debug" ]] && echo "$ctx"
+    
+        if   [[ "$ctx" == $ANY^$ANY^ERROR ]]; then            do=ERROR;
+        elif [[ "$ctx" == $ANY^$CONT^$ANY ]]; then            do=CONT;
+        elif [[ "$ctx" == $ANY^$ARGS^$ANY ]]; then            do=NEXT      state=ARGS;
+        elif [[ "$ctx" == START^@($VAL|$NUM)^$ANY ]]; then    do=ARG;
+        elif [[ "$ctx" == ARGS^$ARG^$ANY ]]; then             do=ARG;
+        
+        # --- NEW ASSIGNMENT TRANSITION ---
+        # Must come before SHORT/LONG to catch the "=" case
+        elif [[ "$ctx" == @(START|OPT)^$ASSIGN^$ANY ]]; then  do=ASSIGN    state=START; 
+    
+        elif [[ "$ctx" == @(START|OPT)^$SHORT^$ANY ]]; then   do=SHORT     state=START;
+        elif [[ "$ctx" == START^$LONG^END ]]; then            do=LONG-END;
+        elif [[ "$ctx" == START^$LONG^VAL ]]; then            do=LONG-VAL  state=OPT;
+        elif [[ "$ctx" == OPT^$ANY^VAL ]];    then            do=OPT-VAL;
+        elif [[ "$ctx" == OPT^$ANY^END ]];    then            do=OPT-VAL   state=START;
+        else                                                  do=ERROR; fi
+        
+        case $do in
+            "") :;;
+            CONT) shift; cont=("$@"); shift $#;;
+            NEXT) shift;;
+            ARG) args+=("$1"); shift;;
+            SHORT)
+                tmp=(); opt="${1:1}"; shift;
+                for ((i=0; i < ${#opt}; i++)); do tmp+=("--${opt:i:1}"); done;
+                set -- "${tmp[@]}" "$@";;
+            
+            # --- NEW ASSIGNMENT ACTION ---
+            ASSIGN)
+                opt="${1%%=*}"      # Get key (--key)
+                val="${1#*=}"       # Get value (val)
+                opt="${opt##+(-)}"  # Clean dashes (key)
+                opts["$opt"]="$val" # Assign
+                shift;;
+    
+            LONG-END) opt="${1:2}"; opts["$opt"]=$((opts["$opt"] + 1)); shift;;
+            LONG-VAL) opt="${1:2}"; opts["$opt"]="$2"; shift 2;;
+            OPT-VAL) opts["$opt"]+=" $1"; shift;;
+            ERROR|*) { echo $# "$@"; declare -p do state next; } | fmt -999; shift;
+        esac
+        [[ "$debug" ]] && declare -p opts args cont
+    done
+
+- id: cmpa
+  sh: |-
+    local -n _a=$1; local -n _b=$2
+    [[ ${#_a[@]} -ne ${#_b[@]} ]] && return 1
+    for ((i=0; i<${#_a[@]}; i++)); do
+        [[ "${_a[i]}" != "${_b[i]}" ]] && return 1
+    done
+    return 0
+
+- id: cmpaa
+  sh: |-
+    local -n _a=$1; local -n _b=$2
+    [[ ${#_a[@]} -ne ${#_b[@]} ]] && return 1
+    for k in "${!_a[@]}"; do
+    	[[ -v _b[$k] ]] || return 1
+        [[ "${_a[$k]}" != "${_b[$k]}" ]] && return 1
+    done
+    return 0
+
+- id: check
+  sh: |-
+    { echo "${FUNCNAME[1]} ";
+      if cmpaa opts ropts && cmpa args rargs && cmpa cont rcont
+      then echo OK; declare -p test
+      else echo KO; declare -p test opts ropts args rargs cont rcont
+      fi; } | tr -d '\n' | sed 's/declare -[aA]//g'; echo
+
+- id: gen-tests
+  macros:
+    empty: &e
+      test: []
+      opts: []
+      args: []
+      cont: []
+  tests:
+    - tags: [ empty ]
+      <<: *e
+    - tags: [ single, mark ]
+      <<: *e
+      test: [ -- ]
+    - tags: [ single, mark ]
+      <<: *e
+      test: [ ++ ]
+    - tags: [ dual, mark ]
+      <<: *e
+      test: [ --, ++ ]
+    - tags: [ dual, mark ]
+      <<: *e
+      test: [ ++, -- ]
+      cont: [ -- ]
+    - tags: [ single, arg ]
+      <<: *e
+      test: [ a ]
+      args: [ a ]
+    - tags: [ dual, arg ]
+      <<: *e
+      test: [ a, b ]
+      args: [ a, b ]
+    - tags: [ single, opt ]
+      <<: *e
+      test: [ -x ]
+      opts: [ x, 1 ]
+    - tags: [ dual, opt ]
+      <<: *e
+      test: [ -x, -y ]
+      opts: [ x, 1, y, 1]
+    - tags: [ opt, arg ]
+      <<: *e
+      test: [ -x, a ]
+      opts: [ x, a ]
+    - tags: [ opt, eq ]
+      <<: *e
+      test: [ --x=a ]
+      opts: [ x, a ]
+    - tags: [ opt, arg ]
+      <<: *e
+      test: [ -x, a, b ]
+      opts: [ x, "a b" ]
+    - tags: [ opt, eq ]
+      <<: *e
+      test: [ --x=a, b]
+      opts: [ x, a ]
+      args: [ b ]
+  jq: |-
+    def body:
+      [ "local -A opts=()", "local args=()", "local cont=()" ]
+    	+ [ "local test=(\(.test))", "local -A ropts=(\(.opts))", "local rargs=(\(.args))", "local rcont=(\(.cont))" ]
+    	+ [ "parsarg \"${test[@]}\"", "check" ]
+      | join("; ");
+    $tests | map(map_values(map(@sh) | join(" ")))
+      | [ keys, map(.) ] | transpose | map ({ name: "pa:test\(100 + first)" } + last)
+      | map("\(.name) () { \(body); }")[]
+  sh: |-
+    self -nr --argjson tests "$tests" 
+
+- id: run-tests
+  sh: |-
+    source <(gen-tests)
+    source <(compgen -c pa:test)
+
+- id: old-test
+  sh: |-
+    local -A k; local t
+    pa:add () { t+=("$1"); k["$1"]="$2"; }
+    pa:add 'pa:try' 'declare -a input=() declare -A opts=() declare -a args=() declare -a cont=()'
+    pa:add 'pa:try --' 'declare -a input=([0]="--") declare -A opts=() declare -a args=() declare -a cont=()'
+    pa:add 'pa:try ++' 'declare -a input=([0]="++") declare -A opts=() declare -a args=() declare -a cont=()'
+    pa:add 'pa:try -- ++' 'declare -a input=([0]="--" [1]="++") declare -A opts=() declare -a args=() declare -a cont=()'
+    pa:add 'pa:try ++ --' 'declare -a input=([0]="++" [1]="--") declare -A opts=() declare -a args=() declare -a cont=([0]="--")'
+    pa:add 'pa:try a' 'declare -a input=([0]="a") declare -A opts=() declare -a args=([0]="a") declare -a cont=()'
+    pa:add 'pa:try a b' 'declare -a input=([0]="a" [1]="b") declare -A opts=() declare -a args=([0]="a" [1]="b") declare -a cont=()'
+    pa:add 'pa:try a b -x' 'declare -a input=([0]="a" [1]="b" [2]="-x") declare -A opts=([x]="1" ) declare -a args=([0]="a" [1]="b") declare -a cont=()'
+    pa:add 'pa:try -x -- a b' 'declare -a input=([0]="-x" [1]="--" [2]="a" [3]="b") declare -A opts=([x]="1" ) declare -a args=([0]="a" [1]="b") declare -a cont=()'
+    pa:add 'pa:try -xx -- a b' 'declare -a input=([0]="-xx" [1]="--" [2]="a" [3]="b") declare -A opts=([x]="2" ) declare -a args=([0]="a" [1]="b") declare -a cont=()'
+    pa:add 'pa:try -xx --y z -- a b' 'declare -a input=([0]="-xx" [1]="--y" [2]="z" [3]="--" [4]="a" [5]="b") declare -A opts=([y]="z" [x]="2" ) declare -a args=([0]="a" [1]="b") declare -a cont=()'
+    pa:add 'pa:try -xx --y z -- a b -u a s d -v' 'declare -a input=([0]="-xx" [1]="--y" [2]="z" [3]="--" [4]="a" [5]="b" [6]="-u" [7]="a" [8]="s" [9]="d" [10]="-v") declare -A opts=([y]="z" [x]="2" ) declare -a args=([0]="a" [1]="b" [2]="-u" [3]="a" [4]="s" [5]="d" [6]="-v") declare -a cont=()'
+    pa:add 'pa:try -xxy a' 'declare -a input=([0]="-xxy" [1]="a") declare -A opts=([y]="a" [x]="2" ) declare -a args=() declare -a cont=()'
+    for i in "${t[@]}"; do
+    	r=$($i) e="${k["$i"]}"
+    	#echo $i; echo $r; echo $e
+    	[ "$r" == "$e" ] && echo -n 'OK ' || echo -n 'KO '; echo "$e"
+    done
