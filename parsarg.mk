@@ -29,6 +29,12 @@ cmd/%.sh: out/%.yml | cmd
 
 out cmd:; mkdir -p $@
 
+bin := /usr/local/bin
+cmds := parsarg
+installed := $(cmds:%=$(bin)/%.sh)
+install: phony $(installed)
+$(bin)/%.sh: cmd/%.sh; install $< $@
+
 # Local Variables:
 # indent-tabs-mode: nil
 # End:
