@@ -40,7 +40,19 @@ filter | head + .[1:] | map(norm)';
 }
 umdq:src () 
 { 
-    jq <<< '[{"ns":"umdq","id":"install","is":["na"],"sh":"cargo install --git https://github.com/yshavit/mdq"},{"ns":"umdq","id":"md2yml-v1","js":{"bash":"sh","json":"js","txt":"tt","sh":"tt"},"jq":"def item:\n  .section | (.title / \" \")[-1] as $id\n  | .body | map(.code_block // empty | { (.language): .code }) | add as $keys\n  | { $id } + $keys;\ndef filter: .items | map(item);\ndef head: first | if .id | test(\"^head\") then .json | fromjson else [.] end;\ndef norm: with_entries(.key |= ($map[.] // .));\nfilter | head + .[1:] | map(norm)","sh":"mdq -o json '\''# /^(head|id)/'\'' | jq \"$jq\" --argjson map \"$js\" | yq -P\n","tt":"< ssp.md md2yml-v1"},{"ns":"umdq","id":"md2yml","js":{"bash":"sh","json":"js","txt":"tt","sh":"tt"},"jq":"def item:\n  .section as { $title, $body }\n  | $body | map(.code_block // empty | { (.language | $map[.] // .): (.code / \"\\n\") }) | add as $keys\n  |  ($title / \" \") | { type: .[0], id: .[1] } + { $keys };\ndef print:\n  def id:\n    def each:\n      def yml: .value | map(\"  \" + .);\n      def others:[ \"  \\(.key): |-\" ] + (.value | map(\"    \" + .));\n      if .key == \"yml\" then yml else others end;\n      [ \"- id: \\(.id)\" ] + (.keys | to_entries | map(each) | add);\n  if .type == \"raw\" then .keys.yml else id end  | join(\"\\n\");\n.items | map(item) | map(print) | join(\"\\n\\n\")","sh":"mdq -o json '\''# /^(raw|id)/'\'' | jq \"$jq\" -r --argjson map \"$js\"\n","tt":"< ssp.md md2yml"}]'
+    base64 -d <<< 'H4sIAAAAAAAAA61T247aMBB971eMXKRNVJJ0+5h2/6HvSXZlsCFmEwdiwxZB/r1nnMB2tWylSpVQ
+GHtmzpnLcXES1olc7Fu1E3NhFGxjnZdNw0e4CmGlqObC1XAtZb/uaAqgJFkbT7X3W5dnGex6v0iX
+XZsdXS0PxmcMOsxvULTq27FtksM9LjZwnsRCBgJ8+KazsOGYC//Lw/ReTBXAGhCxg6n0iozXbV5a
+otTppTedpTNFqTe+0ZRRKfCLi+S+IuloZhRHnilddOqI/1ZuI9Sr9NOi6ZbPlGWk261n1wkojbTr
+vVzrOKcQRUMMj1QqgD3roxvhToxMA30ZL7+XlitbmcbrHqlcopvY2I6ngFpLlSOsdx5es0KkguG1
+81EpHtmN4snX2lLKI4Fz1XdtMHXjNBVpRdqqCc92fZvTC7bwpK3vjXZRinro/EDRDOQcjQ7TmAsY
+qwMi06DytLjPq6lIBoov88bSKOkokN59puwx4oyzUXF2h/jNDhOebXaYdJJAHCEOIOHW4fZMRwD8
+LC3vklf5g5zbpq2iVw38RSL/Xx/YHRYWFDKnWVDCMO5x9m+y4Iw/x5rTmBV0V5aWl/eBYrCQtxIN
+0P641dBL8bWak1FsQbcsq9OYS8O06W1vrA9dhRZVMMeDlst6Oo4XmCGQDrLZ66k1MDIrds5CeI3s
+oLTe5QWFgDKIB02dE5wrhEfvUK44r0AsYxbdwwN84EZAEDDMUbMjyyTbMYcZk9Axs0JZV8LQNZ5E
+d1H0RM5dTpMdqZmWxzfy9vLlwhsg0is7XhiYeQWbztjosidgvH+mkx2GHb/NCEkfvxDw33wg/e03
+8uHbEEP16TcBttYtoQUAAA==
+' | zcat | jq
 }
 ns:umdq () 
 { 

@@ -124,7 +124,21 @@ git2md:relative-file-to-md ()
 }
 git2md:src () 
 { 
-    jq <<< '[{"ns":"git2md","id":"git-url","sh":"git config --get remote.origin.url"},{"ns":"git2md","id":"git-repo","jq":"split(\":\")[1]","sh":"git-url | self -Rr"},{"ns":"git2md","id":"git-site","jq":"split(\":\")[0]|split(\"@\")[1]","sh":"git-url | self -Rr"},{"ns":"git2md","id":"git-repo-to-url","jq":"[inputs] | \"https://\\(first)/\\(last)\"","sh":"{ git-site; git-repo; } | self -nRr"},{"ns":"git2md","id":"git-repo-to-md","sh":"git-repo-to-url | git-url-to-md repo"},{"ns":"git2md","id":"gr2md","sh":"git-repo-to-md \"$@\""},{"ns":"git2md","id":"git-url-to-md","jq":"\"\\n    \" as $s\n| (if $what == \"repo\" then split(\"/\")[-1] else split(\"/\")[7:] | join(\"/\") end) as $p\n| \"[\\($p)]:\\($s)\\(.)\\($s)\\\"github.com \\($what)\\\"\\n\"","sh":"self -Rr --arg what ${1:-file}"},{"ns":"git2md","id":"check-tty","sh":"[ -t 0 ] && fail \"input shouldn'\''t be a TTY\""},{"ns":"git2md","id":"git-branch-or-tag","sh":"if [ \"$1\" ]; then git tag | grep $1 || fail no $1 tag; else git branch --show-current; fi"},{"ns":"git2md","id":"git-file-to-url","sh":"xargs -ri echo https://$(git-site)/$(git-repo)/blob/$(git-branch-or-tag \"$@\")/{}"},{"ns":"git2md","id":"git-file-to-md","sh":"check-tty; git-file-to-url \"$@\" | git-url-to-md"},{"ns":"git2md","id":"gf2md","sh":"git-file-to-md \"$@\""},{"ns":"git2md","id":"git-repo-to-js","jq":"{ url: .}","sh":"git-repo-to-url | self -R"},{"ns":"git2md","id":"git-commit-to-js","sh":"pretty='\''{ _XXX_comment_XXX_: _XXX_%s_XXX_, _XXX_commit_XXX_: _XXX_%H_XXX_ }'\''\ngit log -${1:-1} --pretty=\"$pretty\" | sed -e '\''s/\"/\\\\\"/g'\'' -e '\''s/_XXX_/\"/g'\''"},{"ns":"git2md","id":"git-repo-and-commit-to-js","jq":"input as $r | [inputs] | map([$r, .] | add)[]","sh":"{ git-repo-to-js; git-commit-to-js \"$@\"; } | self -n"},{"ns":"git2md","id":"git-commit-to-md","lv":["id"],"jq":"\"\\n    \" as $s | \"[\\(.comment)]:\\($s)\\(.url)/commit/\\(.commit)\\($s)\\\"github.com commit\\\"\\n\"","sh":"git-repo-and-commit-to-js \"$@\" | self -r; alias gc2md=$id"},{"ns":"git2md","id":"gc2md","sh":"git-commit-to-md \"$@\""},{"ns":"git2md","id":"relative-file-to-js","jq":"{ url: ., name: . }","sh":"self -R"},{"ns":"git2md","id":"relative-file-to-md","jq":"\"\\n    \" as $s | \"[\\(.name)]:\\($s)\\(.url)\\($s)\\\"github.com relative file\\\"\\n\"","sh":"check-tty; relative-file-to-js | self -r"}]'
+    base64 -d <<< 'H4sIAAAAAAAAA6VVTY+bMBC991eMLLoJUgibvVQiitRjz9UetgJUETDgLTHUdnZbJfnvHRscyAfZ
+SM0htsfOm5k3bybhjnBJAlIw9bTJyIywrD15W1HhUZbtEdKa56wAzyuoAkE3taLzWrCC8bl+eZiN
+Agna1Hh+/Y1n2VRMTSMSRMQNF/HAgfYHe5C0ysH7Lm4BSqboVcDHeG/PX//HgY7YU3VHgfETMt5s
+lYwRISKlUo0MfD+KpjkTUrl6VyW4iYj1uAMb6hIs5hIOxwj4fSEY6zGFQWAI1CXVPgND8xiieLoO
+hL+LiINk3Yrl6MOSEZEo4oCfiEAiwZER38OU5eC8l4mC1QovtAe8ViXlYIvi66J4ixhoJemp9Uug
+qX2tGe8sQHnmGvRGo0ckRI6dxo0DvUoXv+eu3UY6znK7nqf1BrRRx2HsGGhfE1t7VHEiCjDBOrtF
+4OWsoocxCtKSpr88pf5amBA8BY8Qw8MD5AmrMDijDpBlva0yPlGwppDA8/OP28SuRcLT0quFp5LC
+oiONoS7KAtmLly2BugHxia458grOAvb71jWv9Qnvli2p+mULi0liPO9euhWCcrWEnN2KRVPQa95E
+8gdJkuAJBjQta7Cqd6ZW2W6317V2/XVVrzvDSWKdwlx/N0rxMIBeqEfi2w4aRNhBnvfAKHx+Jv/e
+1x3yt73yKq3+d4AuA5gfxnuzk9otXNTqBheLbIAaQTHf1WQHP19eXn7qJ1g7sw9a02dplln/gJ3e
+fzMLHCYR12KoahzaRuSLA0qic4BZtztDoqQZeBQm0te9pz/ELyadycD5xvIhSwnPztMyhLXtoZtZ
+oLvBLN0kzTR0xAzm+pRkmRvGpxO0Z79VwRC+K97JWL2PcWOv3kgQ6tt4bK6BHTzzrhIn4wcr7fot
+pm/fMHV9KLV3FxNplLle4W1eYglJxTCoIsWkVg4bF3t6JvZh1h/IXdAqUeyNHhvkUvMz4MmG4gYO
+Z2P1btAbfyQ94drLBdtXqbX4oPEvGB4MkSvZ9fySQ/zpH6edZzoNCQAA
+' | zcat | jq
 }
 ns:git2md () 
 { 

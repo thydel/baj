@@ -26,7 +26,12 @@ llmfs:mini ()
 }
 llmfs:src () 
 { 
-    jq <<< '[{"ns":"llmfs","id":"mini","jq":"{ llmfs: \"mini\", files: . }","sh":"self -s \"$@\""},{"ns":"llmfs","id":"enc","jq":"{ file: input, lines: [ inputs ] }","sh":"while read; do { <<< \"$REPLY\" jq -R; < \"$REPLY\" jq -R; } | self -n; done | mini \"$@\""},{"ns":"llmfs","id":"dec","jq":".files[] | [\"<<-\\\"!\\\" > \\(.file | @sh) cat\"] + (.lines | map(\"\\t\" + .)) + [\"!\"] | .[]","sh":"self -r"}]'
+    base64 -d <<< 'H4sIAAAAAAAAA31Qu27DMAzc+xVXooON2voARyiyZOtQZCtEDUYswwoUNYlSdHD976UUoEGBoAtB
+3h2PDzNTTNRRCIcxUUN+kOLgo5d8f5J8RqE6cIGZGow+OAEUFhGlSUTJhRFtEs3TmomW5p6ri7ub
+afbo4OPx89Ig+JgNzbVOsDfnr0mEOLt+WGH4wAytdR6z3by9vjNhf0K7XeEetuAb18Vi7o1O6nzC
+/1sO7ndLVQ41VvoMk9YtM9NjDngBc1V4IddpqrHrL0wWz6hUOScP648VE7MQgqu6lmiyA2VLZezf
+951psQ8/gJbRm5ABAAA=
+' | zcat | jq
 }
 ns:llmfs () 
 { 

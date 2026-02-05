@@ -17,7 +17,18 @@ baja:fn-ansible ()
 }
 baja:src () 
 { 
-    jq <<< '[{"ns":"baja","id":"convert-json-out","jq":"map({ node } + { out: (.stdout_lines | add | fromjson) })"},{"ns":"baja","id":"txt-out-to-md","jq":".[] | \"# \\(.node)\", \"\", \"```\", .stdout_lines[], \"```\", \"\"","sh":"self -r"},{"ns":"baja","id":"fn-ansible","jq":".. | .results? // empty | map({ node } + (.ansible_facts.command | { rc, stdout_lines }))","sh":"ANSIBLE_STDOUT_CALLBACK=json ansible-playbook <(echo \"$js\") \"$@\" | self","tt":"<<< id fn-ansible -bl mapa2,bastion1\n# as root, even if ssh node -l root fail (provided `become` works)\nwith-lib a-lib -- a-func | fn-ansible -bl a-node -CD","js":[{"hosts":"all","gather_facts":false,"vars":{"rol":{"delegate_to":"localhost","run_once":true}},"tasks":[{"set_fact":{"stdin":"{{ lookup(file, stdin) }}"},"vars":{"file":"file","stdin":"/dev/stdin"},"delegate_to":"localhost","run_once":true},{"command":{"argv":["bash"]},"args":{"chdir":"{{ dir | default(omit) }}","stdin":"{{ stdin }}"},"failed_when":false,"register":"command"},{"delegate_to":"localhost","run_once":true,"set_fact":{"command":"{{ hostvars[node].command }}"},"loop":"{{ ansible_play_hosts_all }}","loop_control":{"loop_var":"node"}}]}]}]'
+    base64 -d <<< 'H4sIAAAAAAAAA41UwW7bMAy97ysIdQcHsx1sxyDDlrY7DCu2Q7tTHDiyTddKZSmTlHSF538faSdZ
+M/RQBFBoinyPfKS97ITxYiYKuZEiFqoiu7Rmjy4kG29NYneB/Jtf5G/lNurA2Aqhh3fQAd3NIEp9
+qMjKtTLo4Q/IqqKzdrZlgAn0E9HHL9CE34HRk2CTtjpypMsVJWfiArIsSplrkomYHOO5Xq/ZOKNc
+rp7dcCBh+YawPOoaEvcye20SabwqNJ6oU2JOHfqdDv4TTKeA7TY8kfO/xqP0kJnXsgw+LW3bSsNN
+d+DKGM706CeTYz2L77dfL2++5Ld31z9+3uVXi5uby8XVt48sExwgk62WT4W1DzCPsGwsNfR24zMx
+YeNzJoiE2yLIEAhyPp+DquBfM5AUmuuVH+JC+qCseZ+ZC5AenLUhBtyjAVWD983YUKKHG6il0hBt
+nd2rCitYF0ht4RoerXvwk8w8qtAkWhUghzNJyKh3puRRn7PLZAS+umZlSfdlJxrrA09Aak3Oexka
+dKN6YlZL7TEWe+nooRPOav6rUCPFYR4s5WlbSs0glO12JremRDELbod9T1JI/zDyeAwDLCPQGJSh
+3K4DTYLutlGtNA7jUbyWPS3GiZWveCvUsA/H1GmF++n4QLGvLon27bATDC3d/Z6Ko+2jLVgRDjkG
+zrKplBsLJIOErLCWtHyRbVUYCoyfNzGYh7J5Wljljw2ak4AO75UP6IY3eGTnSl5bdXwm3ql+ZuZ4
+FmrJg12d9n0shbTdjmHHt4JXOB8mntO8xz44KqcPSziMd3gmTMpkUNH3K/69+QuFezI2kAQAAA==
+' | zcat | jq
 }
 baja:txt-out-to-md () 
 { 

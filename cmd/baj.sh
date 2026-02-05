@@ -167,7 +167,44 @@ baj:mk-alias ()
 }
 baj:src () 
 { 
-    jq <<< '[{"ns":"baj","id":"bm4","jq":"def head: \"m4_changequote(«,»)m4_changecom()m4_dnl\";\ndef m4: .[][] | to_entries[] | \"m4_define(«\\(.key)»,«\\(.value | @json[1:-1])»)m4_dnl\";\ndef main: if map(has(\"m4\")) | any then group_by(has(\"m4\")) | (last | m4), first end;\nhead, (inputs | main)","sh":"jq -nr \"$jq\" | m4 -P"},{"ns":"baj","id":"dist","jq":"def isa:\n  def isa:\n    if .[1] | not then \"alien\"\n    elif (first | IN(\"array\", \"null\")) and last == 0 then \"root\"\n    elif first == \"array\" then \"sup\"\n    else \"sub\" end;\n  def addIsa: has(\"id\") as $id | (.id | [type, $id, length] | isa) as $isa | . + { $isa };\n  map(addIsa) | group_by(.isa) | map({ (first.isa): map(del(.isa)) }) | add\n  | reduce (\"root\", \"sup\") as $i (.; if has($i) | not then .[$i] = [{ id: []}] end);\n\ndef useindex: \"i\";\ndef addindex: to_entries | map(.value + { (useindex): .key });\ndef remindex: sort_by(.[useindex]) | map(del(.[useindex]));\n\ndef sameType(t): (map(type) | unique) == [t | type];\n# merge list of object [ o, ... ]\ndef merge:\n  # merge two objects [ o1, o2 ]\n  def merge:\n    # merge two values [ v1, v2 ]\n    def merge:\n      # First is sub, last is sup\n      # add lists, sup <- sub otherwise\n      if sameType([]) then add | unique else last end;\n    # merge all sub values into sup ones\n    reduce (first | to_entries)[] as $e (last; .[$e.key] = ([.[$e.key], $e.value] | merge));\n  # merge all objects using merge two objects\n  reduce .[] as $i ({}; [., $i] | merge);\n\ndef check:\n  (.sup | map(.id) | add) - (.sub | keys) | unique\n  | if length > 0 then \"bad id \\(@json)\\n\" | halt_error(1) else empty end;\n\ndef main:\n  addindex | isa | .sub |= INDEX(.[]; .id)\n  | (.sub | keys) as $subs | .root |= map(.id = $subs) | .sub as $sub | .alien as $alien | check\n  , reduce (.root + .sup)[] as $sup ($sub; reduce $sup.id[] as $id (.; .[$id] |= ([., ($sup | del(.id))] | merge)))\n  | map(.) + $alien | remindex;\n\nmain","sh":"jq -r \"$jq\""},{"ns":"baj","id":"asjs","sh":"if test -v Y2J_USE_PYTHON;\nthen python3 -c '\''import sys, yaml, json; print(json.dumps(yaml.safe_load(sys.stdin.read())))'\'';\nelse yq -oj \"$@\"; fi"},{"ns":"baj","id":"mk-alias","sh":": ${2:?}\nlocal -n a=BASH_ALIASES;\nif [[ ! -v a[$1] || -v a[$1] && \"${a[$1]}\" == \"$2:${1}$3\" ]];\nthen alias $1=\"$2:${1}$3\";\nelse echo warning $(alias $1) not redefined as \"'\''$2:${1}$3'\''\" >&2;\nfi"},{"ns":"baj","id":"emit","jq":"def w($s): $s + . + $s;\ndef q: w(\"\\u0027\");\ndef qq: w(\"\\\"\");\ndef at: \"$@\" | qq;\ndef at($n): \"${@:\\($n)}\" | qq;\n\ndef is($is): has(\"is\") and IN($is; .is[]);\n\ndef ky: map(select([has(\"ky\", \"is\")] | all)) | map(map(.) | combinations);\ndef byky: ky | group_by(first) | map({ (first | first): map(last) }) | add;\ndef byis: ky | group_by(last) | map({ (first | last): map(first) }) | add;\n\ndef aliases:\n  def fa: if is(\"fa\") then \" \" else \"\" end | @sh;\n  .in[] | select(has(\"id\") and has(\"ns\")) | \"\\($ns):mk-alias \\(.id) \\(.ns) \\(fa)\";\n\ndef noalias: .in[] | select(is(\"na\")) | \"unalias \\(.id)\";\n\ndef ns:\n  .in | map(.ns) | unique[]\n  | \"alias \\(.)=ns:\\(.); ns:\\(.) () { \\(.):${1:?} \\(at(2)); }\";\n\ndef is_sh_var:\n   def iterable: type | IN(\"array\", \"object\");\n.key != \"js\" and (.value | (iterable | not) or (map(.) | unique | map(iterable | not) | all));\n\ndef js_var: \"local \\(.key)=\\(.value | @json | @sh)\";\ndef sh_array_var: \"local -a \\(.key)=(\\(.value | map(@sh) | join(\" \")))\";\ndef sh_map_var: .key as $k | .value | to_entries | map(map(@sh)[]) | join(\" \") | \"local -A \\($k)=(\\(.))\";\n\ndef sh_var:\n  (.value | type) as $t\n  | if $t == \"array\" then sh_array_var\n    elif $t == \"object\" then sh_map_var\n    else \"local \\(.key)=\\(.value | @sh)\" end;\n\ndef var: if is_sh_var then sh_var else js_var end;\ndef novars($kys): (null | { sh, ns, id, is } | keys + $kys.nv) as $k | del(.[$k[]]);\ndef vars($kys): novars($kys) | to_entries | map(var);\n\ndef sh: .sh // \"self \\(at)\";\ndef body($kys): vars($kys) + [sh | rtrimstr(\"\\n\")] | join(\"; \");\n\ndef funs:\n  .kys as $kys\n  | .in[] | select(has(\"id\")) | \"\\(.ns):\\(.id) () { \\(body($kys)); }\";\n\ndef src: .in | group_by(.ns) | map(\"\\(first.ns):src () { <<< \\(. | @json | @sh) jq; }\")[];\n\n{ in: ., kys: byis } | aliases, funs, ns, noalias, src","sh":"jq -r \"$jq\" --arg ns ${FUNCNAME%%:*}"},{"ns":"baj","id":"clean","sh":"local ns=${FUNCNAME%%:*}\nlocal i; for i in ${BASH_ALIASES[@]/$ns:clean}; do if [[ $i =~ ${1:?}: ]] then unalias \"${i/$ns:}\"; fi; done\nfor i in $(compgen -c $1); do unset $i; done"},{"ns":"baj","id":"header","sh":"echo shopt -s expand_aliases; declare -f ${FUNCNAME%%:*}:mk-alias"},{"ns":"baj","id":"init","sh":"local ns=${FUNCNAME%%:*}\n$ns:header; $ns:asjs | $ns:dist | $ns:emit\n# kluge to hide too easy to collide name\necho unalias init clean"},{"ns":"baj","id":"main","sh":"local ns=${FUNCNAME%%:*}\n$ns:header; $ns:asjs | $ns:bm4 | $ns:dist | $ns:emit"}]'
+    base64 -d <<< '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
+' | zcat | jq
 }
 ns:baj () 
 { 
@@ -180,6 +217,7 @@ ns:bajl ()
 alias bajl='ns:bajl'
 alias nsp='bajl:nsp'
 alias md2js='bajl:md2js'
+alias zsrc='bajl:zsrc'
 alias forget='bajl:forget'
 alias lib='bajl:lib'
 alias nss='bajl:nss'
@@ -294,6 +332,7 @@ bajl:lib1 ()
     bajl:nsp ${1:?} || bajl:fail not a ns;
     alias $1;
     alias $(aliases $1);
+    . <(zsrc $1);
     bajl:fn $1
 }
 bajl:list () 
@@ -418,7 +457,37 @@ bajl:self ()
 }
 bajl:src () 
 { 
-    jq <<< '[{"ns":"bajl","id":"opts","sh":"# Use local -A opts; local args cont; opts \"$@\" in caller\nlocal opt val tmp i; args=()\nuntil [[ $# -eq 0 ]]; do\n    case \"$1\" in\n        --) shift; break;;\n        --*=*) opt=\"${1%%=*}\"; val=\"${1#*=}\"; opts[\"${opt:2}\"]=\"$val\"; shift;;\n        --*) opts[\"${1:2}\"]=\"1\"; shift;;\n        -[0-9]*) args+=(\"$1\"); shift;;\n        -) args+=(\"$1\"); shift;;\n        -*) tmp=${1:1}\n            for ((i = 0; i < ${#tmp}; i++ )); do\n                opt=\"${tmp:$i:1}\"\n                opts[$opt]=$((opts[$opt] + 1))\n            done\n            shift;;\n        *) args+=(\"$1\"); shift;;\n    esac\ndone; cont=(\"$@\")","tt":"local -A opts; local args cont; opts \"$@\"\n"},{"ns":"bajl","id":"md2js","jq":{"header":"[{ m4: { ME: \"\\($ns)\" }}, { id, ns: \"ME\" }] + input","md2js":"def txt: .c[2] | map(.c // \" \") | join(\"\");\ndef f($b):\n  if $b.t == \"Header\" then ($b | txt) as $h |\n    if $h | startswith(\"id \") then . + [{id: $h[3:]}] else . + [null] end\n  elif $b.t == \"CodeBlock\" and .[-1] then\n    .[-1][$b.c[0][1][0] // \"txt\"] = $b.c[1]\n  end;\n.blocks | reduce .[] as $b ([]; f($b)) | map(values)"},"sh":"pandoc -t json | jq \"${jq[md2js]}\" | jq \"${jq[header]}\" -n --arg ns ${1:?}"},{"ns":"bajl","id":"fail","sh":"unset -v fail; : \"${fail:?${FUNCNAME[1]} $@}\""},{"is":["fa"],"ns":"bajl","id":"loop","sh":"local i; for i in \"${@:2}\"; do $1 \"$i\"; done"},{"ns":"bajl","id":"list","sh":"loop echo \"$@\""},{"is":["fa"],"ns":"bajl","id":"args","sh":"mapfile -t; ((${#MAPFILE[@]} > 0)) && \"${@:-echo}\" \"${MAPFILE[@]}\""},{"is":["fa"],"ns":"bajl","id":"map","sh":"while read; do \"${@:-echo}\" \"$REPLY\"; done"},{"ns":"bajl","id":"self","sh":"jq \"$jq\" \"$@\""},{"ns":"bajl","id":"tst","sh":"< ${1:?}"},{"ns":"bajl","id":"txt","sh":"loop tst \"$@\" && loop txt1 \"$@\""},{"is":["na"],"ns":"bajl","id":"txt1","sh":"header; < ${1:?} asjs | bm4 | dist | emit"},{"ns":"bajl","id":"nss","sh":"loop nss1 \"$@\""},{"is":["na"],"ns":"bajl","id":"nss1","jq":".[].ns // empty","sh":"< ${1:?} yq -oj | self -r"},{"ns":"bajl","id":"listid","sh":"loop listid1 \"$@\""},{"is":["na"],"ns":"bajl","id":"listid1","sh":"compgen -c ${1:?}:; compgen -c ns:${1:?}"},{"ns":"bajl","id":"ids","sh":"loop ids1 \"$@\""},{"is":["na"],"ns":"bajl","id":"ids1","jq":".[].id","sh":"eval ${1:?} src | jq \"$jq\" -r"},{"ns":"bajl","id":"fn","sh":"loop fn1 \"$@\""},{"is":["na"],"ns":"bajl","id":"fn1","sh":"listid1 ${1:?} | args declare -f"},{"ns":"bajl","id":"fns","sh":"ids \"$@\" | args def"},{"ns":"bajl","id":"def","sh":"loop def1 \"$@\""},{"is":["na"],"ns":"bajl","id":"def1","sh":"[[ -v BASH_ALIASES[${1:?}] ]] || fail $1 not an alias && declare -f ${BASH_ALIASES[$1]}"},{"ns":"bajl","id":"ns","sh":"(($# == 0)) || fail too many args; compgen -c ns: | cut -d: -f2"},{"ns":"bajl","id":"nsp","sh":"compgen -c ns:${1:?} > /dev/null"},{"ns":"bajl","id":"aliases","sh":"loop aliases1 \"$@\""},{"ns":"bajl","id":"aliases1","jq":"$ARGS.positional | [.[:$n], .[$n:]] | transpose[] | select(last | test(\"\\($ns):\")) | first","sh":"nsp ${1:?} || fail not a ns; self -nr --arg ns $1 --argjson n ${#BASH_ALIASES[@]} --args \"${!BASH_ALIASES[@]}\" \"${BASH_ALIASES[@]}\""},{"ns":"bajl","id":"forget","sh":"loop forget1 \"$@\""},{"is":["na"],"ns":"bajl","id":"forget1","sh":". <(${FUNCNAME%%:*}:listid1 ${1:?} | args echo unset -f; nsp $1 && { aliases $1 | args echo unalias; echo unalias $1; })"},{"ns":"bajl","id":"load","sh":"forget $(nss \"$@\"); . <(${FUNCNAME%%:*}:txt \"$@\")"},{"is":["na"],"ns":"bajl","id":"warn","sh":"echo \\# generated by ${FUNCNAME[1]}, avoid edit"},{"is":["na"],"ns":"bajl","id":"optal","sh":"echo shopt -s expand_aliases"},{"ns":"bajl","id":"prudent","sh":"echo set -euo pipefail; echo shopt -s inherit_errexit"},{"is":["na"],"ns":"bajl","id":"exp1","sh":"listid ${1:?} | args echo export -f"},{"ns":"bajl","id":"exp","sh":"loop exp1 \"$@\""},{"is":["na"],"ns":"bajl","id":"lib1","sh":"nsp ${1:?} || fail not a ns; alias $1; alias $(aliases $1); fn $1"},{"ns":"bajl","id":"lib","sh":"optal; loop lib1 \"$@\"; def self; exp \"$@\""},{"ns":"bajl","id":"with-lib","sh":"(($#)) || fail; optal; until [[ $# == 0 || $1 == -- ]]; do lib1 $1; shift; done; [[ $1 == -- ]] && shift; def self; (($#)) && { f=${BASH_ALIASES[$1]:-$1}; shift; echo $f \"${@@Q}\"; }"},{"ns":"bajl","id":"as-lib","sh":"warn; lib \"$@\""},{"ns":"bajl","id":"as-cmd","sh":"as-lib \"$@\"; echo '\''eval \"$@\"'\''"},{"ns":"bajl","id":"yml2sh","sh":"load ${1:?}; nss1 $1 | args as-cmd\n"}]'
+    base64 -d <<< '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
+39MZj6yGuh4R11tC+bFg9YLf/geeUlEMXBIAAA==
+' | zcat | jq
 }
 bajl:tst () 
 { 
@@ -458,6 +527,11 @@ bajl:yml2sh ()
     bajl:load ${1:?};
     bajl:nss1 $1 | bajl:args bajl:as-cmd
 }
+bajl:zsrc () 
+{ 
+    local jq='"\($ns):src () { <<< '\''\(.)'\'' base64 -d | zcat | jq; }"';
+    ${1:?}:src | jq -c | gzip | base64 | bajl:self --arg ns $1 -sRr
+}
 ns:bajl () 
 { 
     bajl:${1:?} "${@:2}"
@@ -467,5 +541,5 @@ bajl:self ()
     jq "$jq" "$@"
 }
 export -f baj:asjs baj:bm4 baj:clean baj:dist baj:emit baj:header baj:init baj:main baj:mk-alias baj:src ns:baj ns:bajl
-export -f bajl:aliases bajl:aliases1 bajl:args bajl:as-cmd bajl:as-lib bajl:def bajl:def1 bajl:exp bajl:exp1 bajl:fail bajl:fn bajl:fn1 bajl:fns bajl:forget bajl:forget1 bajl:ids bajl:ids1 bajl:lib bajl:lib1 bajl:list bajl:listid bajl:listid1 bajl:load bajl:loop bajl:map bajl:md2js bajl:ns bajl:nsp bajl:nss bajl:nss1 bajl:optal bajl:opts bajl:prudent bajl:self bajl:src bajl:tst bajl:txt bajl:txt1 bajl:warn bajl:with-lib bajl:yml2sh ns:bajl
+export -f bajl:aliases bajl:aliases1 bajl:args bajl:as-cmd bajl:as-lib bajl:def bajl:def1 bajl:exp bajl:exp1 bajl:fail bajl:fn bajl:fn1 bajl:fns bajl:forget bajl:forget1 bajl:ids bajl:ids1 bajl:lib bajl:lib1 bajl:list bajl:listid bajl:listid1 bajl:load bajl:loop bajl:map bajl:md2js bajl:ns bajl:nsp bajl:nss bajl:nss1 bajl:optal bajl:opts bajl:prudent bajl:self bajl:src bajl:tst bajl:txt bajl:txt1 bajl:warn bajl:with-lib bajl:yml2sh bajl:zsrc ns:bajl
 eval "$@"

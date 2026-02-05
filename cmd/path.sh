@@ -17,7 +17,10 @@ path:delp ()
 }
 path:src () 
 { 
-    jq <<< '[{"sh":": ${1:?}; PATH=$(self -nr --args \"$@\")","ns":"path","id":"addp","jq":"(env.PATH / \":\") as $p | ($ARGS.positional - $p) + $p | join(\":\")"},{"sh":": ${1:?}; PATH=$(self -nr --args \"$@\")","ns":"path","id":"delp","jq":"(env.PATH / \":\") as $p | $p - $ARGS.positional | join(\":\")"}]'
+    base64 -d <<< 'H4sIAAAAAAAAA62OMQvCMBCFd3/FcWRIsam4RkQ76SjqZh0CiW1KSGJTXGr/uyfdOjm4HB+8947v
+NmBqUKIENqzlbtzAqbwet4wn4x4gfAdCqK5OUCHbV5hhjj5RP6q+IbaaWGkdidsnMTf+VXxfwIom
+khagErAIb+CsPB8uRQzJ9jZ45UBQkMFyittgPZ8mOOZ/0NLG/aJFhzzmajOf++IDCaIlNykBAAA=
+' | zcat | jq
 }
 ns:path () 
 { 

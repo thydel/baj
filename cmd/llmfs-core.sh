@@ -61,7 +61,16 @@ llmfs:merge ()
 }
 llmfs:src () 
 { 
-    jq <<< '[{"ns":"llmfs","id":"files","sh":"[[ \"$1\" == -z ]] && jq -sR '\''(./\"\\u0000\")[:-1][]'\'' || jq -R\n"},{"ns":"llmfs","id":"conf","jq":"{ $mode, file: . }","sh":"self -c --arg mode ${1:-text}\n"},{"ns":"llmfs","id":"b64","sh":"sed /${1:-^}/s/text/b64/"},{"ns":"llmfs","id":"content","js":{"text":"cat","b64":"base64"},"jq":"\"< \\(.file) \\($map[.mode]) | jq -nR [inputs]\"","sh":"while read; do echo $REPLY; <<< $REPLY self -r --argjson map \"$js\" | dash; done\n"},{"ns":"llmfs","id":"merge","jq":"try repeat([input, input]) | first + { lines: last }\n","sh":"self -n"},{"ns":"llmfs","id":"core","jq":"{ llmfs: \"core\", files: . }","sh":"self -s \"$@\""},{"ns":"llmfs","id":"enc","sh":"content | merge | core \"$@\""},{"ns":"llmfs","id":"indir","jq":".files[].file |= \"\\($dir)/\\(.)\"\n","sh":"self --arg dir ${1:?}"},{"ns":"llmfs","id":"dec","js":{"text":"cat","b64":"base64 -d"},"jq":".files[] | [\"<<-\\\"!\\\" \\($map[.mode]) | install --backup=t /dev/stdin \\(.file | @sh)\"] + (.lines | map(\"\\t\" + .)) + [\"!\"] | .[]","sh":"self -r --argjson map \"$js\""}]'
+    base64 -d <<< 'H4sIAAAAAAAAA4VSTW+cMBC991dMLZSAskBXqnogrJpLbz1Ue6tsIjnYBLasIdjbr13+e2fMkijV
+0nLAM/Z8vJn3+JEZyzLWtvvKshVrFDpV02pybI0O5yBYsBYMNhuIf0NRwNUV7J4gtlu4DpNUMCEO
+7/ATLOJZvC54cQ2nkw/ZCsPG1aUeZWcqtHdPaB8h2HdKr4AaZ5DAODe3uq0gLiGO5fAIFATBcZ3F
+Tv9042Lthw/vXwooSH3K/ZjalPJSfE6XUTltHAHDtyOjeLqWdEVlsbi0Go3xjF2wHIQIE4IekRXs
+Zc8TglpEMG3BbIE3pj84Wwg2I/tRYwYMWqpbUB3osu4g2H768vnrLeR5frZh2sAwbWBnOwNYnxjZ
+WaTkBEramgoYvbiOvR4e9bxrN/zCpr2WLpwwrcAfHmzVDNbBDRyhbYy2GbQSfVr0Kz6WOR30C6f+
+KUOodC3YxK69QK+lce5wM5eralPO8Wd6EKmfCU+q/e/0xqhmmFF5miwv/AmnDZB4wwAjopRYjND/
+a1ivPAzwwvs4LnRRuvy/aCBWz7qZkeAMHDWUx0II9pZ+F0TUGOtk2yKYB1l+O/QbB6nS31PrVGOe
+5YeBd7bGEQqkMEw8hbQq2Yc0psPSN5BEEf459WLUPOHF63kXpMbG4s0fKFNlxi0EAAA=
+' | zcat | jq
 }
 ns:llmfs () 
 { 
