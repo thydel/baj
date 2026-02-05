@@ -119,7 +119,7 @@
 - { id: exp1, sh: 'listid ${1:?} | args echo export -f' }
 - { id: exp, sh: loop exp1 "$@" }
 
-- { id: lib1, sh: 'nsp ${1:?} || fail not a ns; alias $1; alias $(aliases $1); fn $1' }
+- { id: lib1, sh: 'nsp ${1:?} || fail not a ns; alias $1; alias $(aliases $1); . <(zsrc $1); fn $1' }
 - { id: lib, sh: optal; loop lib1 "$@"; def self; exp "$@" }
 
 - id: with-lib
@@ -135,3 +135,9 @@
 - id: yml2sh
   sh: |
     load ${1:?}; nss1 $1 | args as-cmd
+
+- id: zsrc
+  jq: |-
+    "\($ns):src () { <<< '\(.)' base64 -d | zcat | jq; }"
+  sh: |
+    ${1:?}:src | jq -c | gzip | base64 | self --arg ns $1 -sRr
