@@ -158,9 +158,15 @@ compiles it into a function that **carries its own jq logic as data**:
 
 ```bash
 source path.sh
-path:addp ~/bin       # idempotent — safe to call repeatedly
+path:addp ~/bin       # fully qualified — always unambiguous
+addp ~/bin            # short alias — works unless another lib claimed it
 path:delp ~/old/bin   # same mechanism, different jq expression
 ```
+
+Aliases aren't only a compile-time mechanism — they survive into the
+interactive shell. After sourcing, both `addp` and `path:addp` work.
+The qualified form is always safe; the short form is convenient when
+there's no collision with another sourced library.
 
 The function runs jq internally, captures the result, assigns it to
 `$PATH`. Two lines of YAML produced a reusable, composable, SSH-streamable
