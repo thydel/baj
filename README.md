@@ -1,357 +1,216 @@
-**Declarative Bash function libraries, compiled to one file and streamable over SSH**
+# baj — Bash function libraries, compiled from YAML/Markdown
+
+baj is a compiler that turns declarative sources (YAML, Markdown) into
+a **single self-contained Bash script** — sourceable, executable, and
+streamable over SSH without copying files.
 
 ```bash
-url=https://raw.githubusercontent.com/thydel/baj/2025-12-22-a/cmd/baj.sh
-source <(curl -fsSL $url)
-```
-
-<!-- markdown-toc-generate-toc -->
-<!-- https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1036359 -->
-<!--
-< README.md pandoc -f gfm -t gfm --toc --toc-depth=6 --template doc/toc.md --columns=196 | grep -v Table.of.Contents
--->
-
--   [What is baj?](#what-is-baj)
--   [See also](#see-also)
--   [Core idea](#core-idea)
--   [One-file usage](#one-file-usage)
--   [Dual usage model](#dual-usage-model)
-    -   [1. Library / REPL mode](#1-library--repl-mode)
-    -   [2. Command mode](#2-command-mode)
--   [Namespaces and aliases](#namespaces-and-aliases)
-    -   [Why this matters](#why-this-matters)
--   [Zero-copy remote execution (key feature)](#zero-copy-remote-execution-key-feature)
--   [Why `eval "$@"` is deliberate](#why-eval--is-deliberate)
--   [How baj works (high level)](#how-baj-works-high-level)
--   [What baj is good at](#what-baj-is-good-at)
--   [Design principles](#design-principles)
--   [Status](#status)
--   [A note on aliases (important)](#a-note-on-aliases-important)
-    -   [Source-level indirection](#source-level-indirection)
-    -   [Why this matters](#why-this-matters-1)
-    -   [Summary](#summary)
-
-# What is baj?
-
-**baj** is a toolchain that lets you write Bash function libraries *declaratively* (using YAML and Markdown), compile them into **pure Bash**, and use them:
-
-* interactively (REPL-style),
-* as command-line tools,
-* or remotely over SSH **without copying files**.
-
-> **To use baj, you only need one file:**
-> `baj.sh`
-
-No installation, no packaging, no deployment on remote nodes.
-
----
-
-# See also
-
-- [doc/architecture.md][]
-- [doc/bootstrap.md][]
-
-# Core idea
-
-baj treats **shell functions as data**:
-
-* functions are *described*, not handwritten
-* composition and inheritance happen before code generation
-* the final output is a **self-contained Bash script**
-
-That script can be:
-
-* `source`d,
-* executed directly,
-* or streamed into a remote shell.
-
----
-
-# One-file usage
-
-All baj functionality is contained in a **single generated file**:
-
-```sh
-source baj.sh
-```
-
-That’s it.
-
-Once sourced, all namespaces, functions, aliases, and helpers are available in memory.
-
-This property is intentional and fundamental to baj’s design.
-
----
-
-# Dual usage model
-
-A baj-generated file is designed to work in **two complementary ways**, without modification.
-
----
-
-## 1. Library / REPL mode
-
-When sourced:
-
-```sh
-source baj.sh
-```
-
-You get an interactive, namespaced function environment:
-
-* functions are available as `ns:function`
-* short aliases are also available (see below)
-* namespaces can be loaded, inspected, and cleaned explicitly
-
-Example:
-
-```sh
-git2md:gr2md
-gr2md   # alias
+source <(curl -fsSL https://raw.githubusercontent.com/thydel/baj/2025-12-22-a/cmd/baj.sh)
 path:addp ~/bin
 ```
 
-This mode is ideal for:
+## Why functions, not scripts
 
-* exploration
-* diagnostics
-* interactive administration
-* composition of tools
+A Bash function lives in memory. Unlike a script, it can be:
 
----
+- serialized with `declare -f`
+- transmitted over a pipe
+- evaluated by a remote shell with zero filesystem footprint
 
-## 2. Command mode
+baj exploits this: the unit of work is the **function**, not the file.
+A set of functions can be selected, serialized, and streamed:
 
-The *same file* can also be executed:
-
-```sh
-./baj.sh ns:function arg1 arg2
+```bash
+with-lib path git2md -- gr2md | ssh host bash
 ```
 
-This works because baj-generated files end with:
+Nothing is installed. Nothing persists. The remote shell evaluates
+functions from stdin, runs them, and exits.
 
-```sh
-eval "$@"
-```
+## Why jq as the engine
 
-In this mode:
+jq is typically used to query JSON. baj uses it as a **general-purpose
+transformation language** across the entire pipeline:
 
-* the file behaves like a dispatcher
-* arguments are interpreted as a function call
-* no persistent environment is required
+- **Parse**: Pandoc AST (JSON) → structured function records
+- **Classify**: tag each record as `sub`, `sup`, `root`, or `alien`
+- **Inherit**: deep-merge superclass records into subclasses (scalars
+  override, arrays concatenate) — declarative OOP on plain data
+- **Emit**: lower function records into Bash source (`ns:fun () { ... }`,
+  aliases, variables, namespace helpers)
 
-This enables use as:
+jq also appears **inside** generated functions. A YAML key `jq:` becomes
+a `local jq='...'` variable, and the function body calls `jq "$jq"` —
+the function carries its own jq program as data.
 
-* a CLI tool
-* part of pipelines
-* a remote command payload
-
----
-
-# Namespaces and aliases
-
-Every function in baj belongs to a namespace and is generated as:
-
-```
-ns:function
-```
-
-For convenience, baj **also generates a matching alias**:
-
-```
-function = ns:function
-```
-
-Example:
-
-```sh
-git2md:gr2md
-gr2md        # alias to git2md:gr2md
-```
-
-## Why this matters
-
-* avoids global name collisions
-* keeps namespaces explicit
-* preserves ergonomic, short commands
-* makes interactive and scripted usage equally pleasant
-
-Aliases are created and cleaned in a controlled, namespace-aware way.
-
----
-
-# Zero-copy remote execution (key feature)
-
-A central design goal of baj is:
-
-> **Run coherent sets of shell functions remotely without copying files.**
-
-Because baj emits:
-
-* pure Bash
-* no filesystem assumptions
-* no runtime state
-* only ubiquitous tools (`bash`, `jq`, `sed`, `awk`, `perl`, `make`, standard Unix commands)
-
-you can do:
-
-```sh
-with-lib git2md path -- gr2md |
-ssh host bash
-```
-
-What happens:
-
-1. required functions are emitted to stdout
-2. they are evaluated by the remote shell
-3. execution happens immediately
-4. nothing is installed or persisted
-
-This is **zero-copy, zero-state execution**.
-
----
-
-# Why `eval "$@"` is deliberate
-
-Using:
-
-```sh
-eval "$@"
-```
-
-is not a shortcut — it is a **core enabler**:
-
-* one artifact acts as both library and command
-* functions remain first-class
-* execution can be streamed
-* SSH usage becomes trivial
-
-This choice is what allows baj to blur the line between:
-
-* sourcing,
-* executing,
-* and remote evaluation.
-
----
-
-# How baj works (high level)
+## The pipeline
 
 ```
 YAML / Markdown
-      ↓
-Pandoc (AST → JSON)
-      ↓
-jq (semantic transforms, inheritance)
-      ↓
-m4 (safe, controlled macro expansion)
-      ↓
-Pure Bash (functions + aliases)
+      │
+      ▼
+  asjs (yq)          → flat JSON array of objects
+      │
+      ▼
+  bm4 (jq → m4 -P)  → textual macro expansion (before inheritance)
+      │
+      ▼
+  dist (jq)          → classification + deep-merge inheritance
+      │
+      ▼
+  emit (jq)          → Bash functions, aliases, namespace helpers
 ```
 
-Each stage is explicit, inspectable, and reproducible.
+m4 runs **before** inheritance so expanded text is inherited like any
+other value. Macros use French guillemets (`« »`) as quotes and are
+namespace-prefixed — no accidental expansion.
 
----
+## Aliases as compilation
 
-# What baj is good at
+Bash resolves aliases at **parse time**, not execution time. baj uses
+this as a source-level indirection:
 
-* reusable shell function libraries
-* namespaced Bash APIs
-* declarative configuration + behavior
-* ephemeral automation
-* SSH fan-out without deployment
-* literate shell tooling
+- YAML sources use short names: `addp`
+- baj generates `alias addp=path:addp`
+- when Bash parses the output, `addp` is replaced by `path:addp`
+- the final in-memory code contains **only qualified names**
 
----
+This means you can change a function's namespace without editing its
+source. Aliases are a compilation mechanism, not sugar.
 
-# Design principles
+## Dual execution
 
-* **One file to consume**
-* **Functions over scripts**
-* **Streaming over installation**
-* **Declarative over imperative**
-* **Ephemeral execution over state**
-* **Ubiquitous tools only**
+The same generated file works two ways because it ends with `eval "$@"`:
 
----
+| Mode | Usage | What happens |
+|------|-------|-------------|
+| Library | `source baj.sh` | Functions and aliases loaded into current shell |
+| Command | `./baj.sh path:addp ~/bin` | Arguments evaluated as a function call |
 
-# Status
+## Bootstrap
 
-baj is intentionally low-level and explicit.
-It is meant to be composed, inspected, and adapted — not hidden behind magic.
+baj compiles itself in two stages:
 
----
+1. **Core** (`baj:init`) — `baj-boot.sh` (hand-written, no macros)
+   reads `baj-core.md` (literate Bash+jq in Markdown). This produces
+   the core functions: `baj:asjs`, `baj:bm4`, `baj:dist`, `baj:emit`.
 
-# A note on aliases (important)
+2. **Library** (`baj:main`) — the core processes `baj-lib.yml`
+   **through its own pipeline** (including m4), producing the full
+   `bajl:*` toolkit: `load`, `with-lib`, `as-cmd`, `nss`, etc.
 
-Aliases in baj are **not only a convenience for interactive use**.
+The core cannot use m4 (it defines the m4 processor). The library uses
+m4 freely. This breaks the circular dependency.
 
-They play a key role **at source time**.
+## A concrete example
 
----
-
-## Source-level indirection
-
-When writing YAML or Markdown sources, you can refer to a function using its **short name**:
-
-```sh
-fun
+**Input** — `lib/path.yml`:
+```yaml
+- id:
+  ns: path
+- id:
+  sh: ': ${1:?}; PATH=$(jq "$jq" -nr --args "$@")'
+- m4:
+    EP: '(env.PATH / ":") as $p'
+- id: addp
+  jq: 'EP | ($ARGS.positional - $p) + $p | join(":")'
+- id: delp
+  jq: 'EP | $p - $ARGS.positional | join(":")'
 ```
 
-even though the generated function will be:
-
-```sh
-ns:fun
+**Output** — `cmd/path.sh` (after `make`):
+```bash
+path:addp () {
+    local jq='(env.PATH / ":") as $p
+              | ($ARGS.positional - $p) + $p | join(":")';
+    : ${1:?}; PATH=$(jq "$jq" -nr --args "$@")
+}
 ```
 
-This works because:
+What happened:
+- `EP` was m4-expanded into the jq expression
+- The root `sh:` (with no `id`) was distributed to both `addp` and `delp`
+- `jq:` became `local jq='...'`
+- The function calls `jq "$jq"` directly — running its own jq program against `$PATH`
 
-* baj generates `alias fun=ns:fun`
-* Bash resolves aliases **while reading**, not while executing
-* the emitted Bash source always contains the **fully qualified name**
+## From one-liner to tool
 
-As a result:
+Consider idempotent PATH editing. In jq:
 
-* the final generated code never depends on aliases
-* aliases are eliminated during shell parsing
-* the emitted source is explicit and unambiguous
+```jq
+env.PATH / ":" | . - ["/home/thy/bin"] + ["/home/thy/bin"] | join(":")
+```
 
----
+Split on `:`, remove then prepend — idempotency falls out of array
+semantics. No edge-case string matching, no regex. Call it twice, same
+result.
 
-## Why this matters
+This is a powerful one-liner, but it's not directly *usable*. The
+classic Bash alternative — `case ":$PATH:" in *:"$1":*) ;;` — works
+but can't express set operations this cleanly. A Python script would
+handle it trivially but adds a runtime dependency disproportionate to
+the task.
 
-This gives baj an important property:
+baj sits in the sweet spot: it turns that jq expression into a
+callable, self-contained tool with no dependency beyond bash and jq
+(both ubiquitous). The YAML source declares the jq program, baj
+compiles it into a function that **carries its own jq logic as data**:
 
-> **You can change a function’s namespace without rewriting its sources.**
+```bash
+source path.sh
+path:addp ~/bin       # idempotent — safe to call repeatedly
+path:delp ~/old/bin   # same mechanism, different jq expression
+```
 
-Because:
+The function runs jq internally, captures the result, assigns it to
+`$PATH`. Two lines of YAML produced a reusable, composable, SSH-streamable
+tool — from a one-liner that would otherwise live in someone's dotfiles
+and never be shared.
 
-* source files use short names
-* namespace resolution happens via aliases
-* generated code always uses `ns:fun`
+## Functions vs subshells
 
-This enables:
+`./path.sh path:addp ~/bin` runs in command mode — but it can't
+work. A script runs in a subshell: `PATH` is modified in the child
+process and lost when it exits. Only sourced functions operate in the
+current shell:
 
-* easy refactoring of namespaces
-* reuse of the same Markdown/YAML across different libraries
-* late binding of namespaces without textual rewrites
+```bash
+source path.sh
+path:addp ~/bin    # modifies PATH in the current shell
+```
 
----
+This is the classic argument for bags of functions over scripts.
+A script is an isolated world; a sourced function is a tool that
+acts on your environment.
 
-## Summary
+## Transparent generation
 
-* aliases exist at **parse time**, not runtime
-* generated Bash contains only `ns:fun`
-* short names are a stable authoring interface
-* namespaces remain explicit in the output
+baj functions carry their own resolved source. You can inspect
+exactly what the generator produced — after inheritance, after m4
+expansion:
 
-This is why aliases are part of baj’s compilation model, not an afterthought.
+```console
+$ source path.sh
+$ path src | yq -P
+- sh: ': ${1:?}; PATH=$(jq "$jq" -nr --args "$@")'
+  ns: path
+  id: addp
+  jq: (env.PATH / ":") as $p | ($ARGS.positional - $p) + $p | join(":")
+- sh: ': ${1:?}; PATH=$(jq "$jq" -nr --args "$@")'
+  ns: path
+  id: delp
+  jq: (env.PATH / ":") as $p | $p - $ARGS.positional | join(":")
+```
 
----
+Both `addp` and `delp` received the shared `sh:` body from
+inheritance. `EP` was expanded into the full jq expression. Nothing
+is opaque — the transformations are traceable, the output is readable.
+This makes baj closer to a **templating tool** than a traditional
+compiler: it generates code you can read, understand, and trust.
 
-<!--
-find -maxdepth 1 -type f | cut -c 3- | grep -v \~ | jq -Rr '"[\(.)]: \(.) \u0027sibling file\u0027", "- [\(.)][]"' | env LANG=C sort
-find doc -type f | grep -v \~ | jq -Rr '"[\(.)]: \(.) \u0027sibling file\u0027", "- [\(.)][]"' | env LANG=C sort
--->
+## What's next
 
-[doc/architecture.md]: doc/architecture.md 'sibling file'
-[doc/bootstrap.md]: doc/bootstrap.md 'sibling file'
+- Pipeline details: the four stages in depth (asjs, bm4, dist, emit)
+- Authoring guide: writing YAML/Markdown sources, the inheritance model
+- Library reference: included libraries (path, git2md, mdq, parsarg, llmfs, baj-ansible)
+- `with-lib`: function selection and zero-copy remote execution
