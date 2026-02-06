@@ -7,19 +7,20 @@ path:addp ()
 { 
     local jq='(env.PATH / ":") as $p | ($ARGS.positional - $p) + $p | join(":")';
     : ${1:?};
-    PATH=$(self -nr --args "$@")
+    PATH=$(jq "$jq" -nr --args "$@")
 }
 path:delp () 
 { 
     local jq='(env.PATH / ":") as $p | $p - $ARGS.positional | join(":")';
     : ${1:?};
-    PATH=$(self -nr --args "$@")
+    PATH=$(jq "$jq" -nr --args "$@")
 }
 path:src () 
 { 
-    base64 -d <<< 'H4sIAAAAAAAAA62OMQvCMBCFd3/FcWRIsam4RkQ76SjqZh0CiW1KSGJTXGr/uyfdOjm4HB+8947v
-NmBqUKIENqzlbtzAqbwet4wn4x4gfAdCqK5OUCHbV5hhjj5RP6q+IbaaWGkdidsnMTf+VXxfwIom
-khagErAIb+CsPB8uRQzJ9jZ45UBQkMFyittgPZ8mOOZ/0NLG/aJFhzzmajOf++IDCaIlNykBAAA=
+    base64 -d <<< 'H4sIAAAAAAAAA62OPQvCMBBAd3/FcWRIsam4RkQ76SjqZh0CKTah5KMpLrX/3SvdOjm4HI873vEe
+A6YGJUpgw1Yexh1cyvt5z7iNUCGzsUIQrgMhVPdK0+pYYYY5ukRWUH1DbDSx0joQ20jMa/cupkew
+IUWSASoBC/ABzsrr6VYEn0xvvFMtCDpksJ7P1hvHZwXH/G9xum5/iaNBNcvARdVz9QWr22MFNQEA
+AA==
 ' | zcat | jq
 }
 ns:path () 

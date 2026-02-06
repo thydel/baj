@@ -3,7 +3,7 @@
 
 - id:
   sh: |-
-    : ${1:?}; PATH=$(self -nr --args "$@")
+    : ${1:?}; PATH=$(jq "$jq" -nr --args "$@")
 
 - m4:
     EP: |-
