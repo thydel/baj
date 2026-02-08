@@ -21,7 +21,7 @@ cmd/baj.sh: cmd/%.sh : out/%.sh $(self) | cmd
  source $<
  as-cmd $* $*l | $(install)
 
-libs := git-to-md baj-ansible path mdq llmfs-mini llmfs-core
+libs := git-to-md baj-ansible path mdq llmfs-mini llmfs-core misc
 libs: phony $(libs:%=cmd/%.sh)
 
 cmd/%.sh: lib/%.yml cmd/baj.sh
