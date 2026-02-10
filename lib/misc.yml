@@ -8,3 +8,42 @@
     import sys, tiktoken; enc = tiktoken.get_encoding('cl100k_base'); print(len(enc.encode(sys.stdin.read())))
   sh: |
     uv run --with tiktoken python -c "$py"
+
+- id: utree
+  jq: |-
+    def tree($indent):
+      if type == "object" then
+        . as $obj |
+        ($obj | keys) as $all_keys |
+        ($all_keys | length) as $len |
+        if $len == 0 then
+          ""
+        else
+          $all_keys | to_entries | map(
+            .key as $idx |
+            .value as $k |
+            ($idx == ($len - 1)) as $is_last_item |
+            ($obj[$k]) as $val |
+
+            # Choose connector based on position
+            (if $is_last_item then "└── " else "├── " end) as $connector |
+
+            # Choose indent continuation based on position
+            (if $is_last_item then "    " else "│   " end) as $next_indent |
+
+            # If object, recurse; if leaf (null or other), just show it
+            (
+              if $val | type == "object" then
+                "\($indent)\($connector)\($k)/\n" +
+                ($val | tree($indent + $next_indent))
+              else
+                "\($indent)\($connector)\($k)\n"
+              end
+            )
+          ) | join("")
+        end
+      else
+        ""
+      end;
+    tree("")
+  sh: self -r
