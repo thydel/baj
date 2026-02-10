@@ -1,3 +1,11 @@
+# 2026-02-10
+
+- Add a new tag
+
+```bash
+cmnt='infra-prov-2026'
+```
+
 # 2026-01-12
 
 - Add a new tag
