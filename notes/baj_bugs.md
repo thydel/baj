@@ -113,9 +113,7 @@ declare -f "${BASH_ALIASES[$1]}"
 
 ---
 
-## 7. `md2js` Array Subscript on Scalar (Line 56)
-
-**Severity:** Critical (if my analysis is correct)
+## ~~7. `md2js` Array Subscript on Scalar (Line 56)~~ — NOT A BUG
 
 ```yaml
 - id: md2js
@@ -128,11 +126,19 @@ declare -f "${BASH_ALIASES[$1]}"
     pandoc -t json | jq "${jq[md2js]}" | jq "${jq[header]}" -n --arg ns ${1:?}
 ```
 
-**Problem:** The `jq` variable contains a JSON object (with keys `header` and `md2js`). Bash's `${jq[md2js]}` syntax only works on associative arrays. If `jq` is declared as a scalar string (likely, based on baj's emit logic), this subscript returns empty string.
+**Initial concern:** The `jq` variable is an object — would bash handle `${jq[md2js]}`?
 
-**Verification needed:** Check if baj correctly emits `local -A jq=(...)` for object values. If it emits `local jq='...'`, this is broken.
+**Resolution:** The `emit` function in `baj-core.md` handles this correctly:
 
-**Potential fix in emit:** Ensure objects with string keys become `local -A` declarations.
+```jq
+def sh_var:
+  (.value | type) as $t
+  | if $t == "array" then sh_array_var
+    elif $t == "object" then sh_map_var
+    else "local \(.key)=\(.value | @sh)" end;
+```
+
+Object values become `local -A key=(...)` associative arrays. So `${jq[md2js]}` works as intended. **No bug.**
 
 ---
 
@@ -223,7 +229,7 @@ The `«@»` uses French guillemets as m4 quotes. The intent is to pass literal `
 | 4 | `fail` uses `$@` instead of `$*` | Low | `fail` |
 | 5 | `def1` confusing `||`/`&&` chain | Medium | `def1` |
 | 6 | `ns` unquoted args to `fail` | Low | `ns` |
-| 7 | Array subscript on scalar? | **Critical** | `md2js` |
+| ~~7~~ | ~~Array subscript on scalar~~ | ~~Not a bug~~ | `md2js` |
 | 8 | Unquoted `$f` in `with-lib` | Low | `with-lib` |
 | 9 | Unnecessary `eval` in `ids1` | Low | `ids1` |
 | 10 | Dead code: `cont` never used | Low | `opts` |
@@ -235,5 +241,5 @@ The `«@»` uses French guillemets as m4 quotes. The intent is to pass literal `
 ## Recommended Actions
 
 1. **Immediate:** Fix `nsp` — this breaks namespace detection throughout.
-2. **Verify:** Check how baj emits object-type variables (`local -A` vs scalar).
-3. **Cleanup:** Remove duplicate `fn1`, add proper quoting, simplify `def1` logic.
+2. **Cleanup:** Remove duplicate `fn1`, add proper quoting, simplify `def1` logic.
+3. **Investigate:** Test `map` with empty lines and edge cases.
