@@ -2,19 +2,30 @@
 shopt -s expand_aliases
 alias misc='ns:misc'
 alias utree='misc:utree'
+alias re-date-ln='misc:re-date-ln'
 alias tiktoken='misc:tiktoken'
+misc:re-date-ln () 
+{ 
+    local perl='BEGIN { $j = JSON::PP->new->ascii }
+chomp; print $j->encode([ $_, scalar readlink($_) ]), "\n"';
+    local jq='map(@sh) | "touch -hr \(last) \(first)"';
+    find -maxdepth 1 -type l -print0 | perl -MJSON::PP -0ne "$perl" | bajl:self -r
+}
 misc:src () 
 { 
-    base64 -d <<< 'H4sIAAAAAAAAA51US27bMBDd9xQDxUAoRFadbQyvsuoZokBQpLFFiyZVkkoitAGKnsHLni4n6ZC0
-fkVQFBW84Jt5nPc4HPrhWyRNdBeduCmjJOIVrS1vrGpQEm57wvzUKm3B9CaBIbcFlCXsRpwe0OYU
-UhWXB3ZditvNpsmfCoPX8RZazaVlAiUjSuppyKheaizxU41FxWL6MqdpatLsnkF3EtbrF27rUQXa
-3taKwiVk0arts4h2vCUfnKGzGpHA8SuBCvfgMFtxWaG08V0mATgF+xZht6Ni6umIpc0isDVKlwVI
-oTCwogR8DwEWADTYm9gnCyFyhybGFAE67sHWgUjrgUOyHpLsZqYGZMIdx61QGByi84pWUYut5ujA
-qWjZQCKzRPFKvHodlHz8uRAd+kwzjzNPJA/Mm1nDbRyccpOLwticWzwtN9DhH1bNY6BRWZed8ldw
-XytlEEolJbVSaXC3XwFdV6sMt1zN2Mx1YSHlOkEteD+f388/6Edr3wcf+zWLySo4mHQ+9hGu2tmx
-XHaF0/8vR+FqJi8/L3jwIfGVNgSxP5x82UOYqwQ0lp02uHXXL7DYA5OdEEDuFenoOIFjZ+iN1eoF
-uJ3ZmpZhdHzj/z64w0fjlI0j75Zjyzxq4s8Z+Y3gZrmNDRqzFwM3i4O6lzptmI/rPyp74UUNWU1w
-rB6TjaPikrm3cYlemJPo8G4osc2kd+3pw1+JQbGHtY7eHj/9BmzUJh/uBAAA
+    base64 -d <<< 'H4sIAAAAAAAAA51U3WrbMBS+31McvEBlGmXpbULL2Bijg3WFXcYluPZJrViRPEluG9rC2DP0ck/X
+J9mRHNXO6MaY8YXOj873nU9HWtwlyiazZCNskYwTUdLaIC9zh1wq8jRoJPneffh4egZ3MFrDMXz6
++uVsNjs/5ycKb/hJbgsh4CFTRaU3zRwaI5SjTH6CqtAlsgWMlmOwRS5zAwbzUgpVs9EyhYt0DFmS
+ZSpLCGv9zTPJG/bWVincU8TptqiAVwayjMncutQvVsLQKmyxFW1ZCVUC3+S3JTaugiPgbtsgSOCB
+ypRK+TaAf47MgU8VUv2R92cJJViUK+AmU8nD+AVNnKidrjEosiVbbBptHNitHUOMzYH6JXmiPblC
+twwSCHXFDgp5NJ3Wy8vc4kG6U4lJVIxSJjulqN7EOsqfeJlYSl+mYpvtNZhWAec3grqMKNBsXaXJ
+XYR+tiTnH3ponUGMMpe4Am+zEYmHyqWzTAEIcnrpjo+pmL5cY+FIHVeh8lGACeQWRhSA+87BOgNq
+3No0BHMpl97qM3oPULtXruoSaR1zCDaYBDsdoIGfjaRbo7QYvcOKTpPEzgj0hp+dmERkKSUgifI2
+IgX/dS5bDJF66GchkTiwQIbDUdoxFXbpZ28pHG72N1Dzi1F90aVRWR/t46/hfaW1RSi0UiSlNuBP
+vwQ6rkZb4YQeZDOvwh6UV4IkeHp8fHr8Tj+tgw7B93PgU2XHoMd5mUd31J6OE6rNPf5/MeqOpufy
+Y2dHHgpvaUMH9huT0xV0czWml6BojcW5P36J+QqYaqUEYq8Jx9DTsG4t3bFK34BwA1r9shudIPzf
+Bzd+/rF5Hnm/fJYsWHX6JjxGcLi/jUWMwY2Bw71G/U3tNwzH9R+RA/BeDVX25nN1/zCutVDM342d
+d5fZg8Z7Q4F5pgLrkB6fkt1rlzxcvPoFqKNmzAIGAAA=
 ' | zcat | jq
 }
 misc:tiktoken () 
@@ -70,5 +81,5 @@ bajl:self ()
 { 
     jq "$jq" "$@"
 }
-export -f misc:src misc:tiktoken misc:utree ns:misc
+export -f misc:re-date-ln misc:src misc:tiktoken misc:utree ns:misc
 eval "$@"

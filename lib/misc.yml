@@ -3,6 +3,15 @@
 - id:
   ns: misc
 
+- id: re-date-ln
+  perl: |-
+    BEGIN { $j = JSON::PP->new->ascii }
+    chomp; print $j->encode([ $_, scalar readlink($_) ]), "\n"
+  jq: |-
+    map(@sh) | "touch -hr \(last) \(first)"
+  sh: |
+    find -maxdepth 1 -type l -print0 | perl -MJSON::PP -0ne "$perl" | self -r
+
 - id: tiktoken
   py: |
     import sys, tiktoken; enc = tiktoken.get_encoding('cl100k_base'); print(len(enc.encode(sys.stdin.read())))
