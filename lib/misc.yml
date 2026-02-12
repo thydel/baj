@@ -3,6 +3,12 @@
 - id:
   ns: misc
 
+- id: list-renamed-claude-sessions
+  jq: |
+    select(.display | test("^/rename"))
+  sh: |
+    < ~/.claude/history.jsonl self
+
 - id: re-date-ln
   perl: |-
     BEGIN { $j = JSON::PP->new->ascii }
