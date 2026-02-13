@@ -2,6 +2,7 @@
 shopt -s expand_aliases
 alias misc='ns:misc'
 alias utree='misc:utree'
+alias md-auto-wrap='misc:md-auto-wrap'
 alias list-renamed-claude-sessions='misc:list-renamed-claude-sessions'
 alias re-date-ln='misc:re-date-ln'
 alias tiktoken='misc:tiktoken'
@@ -10,6 +11,10 @@ misc:list-renamed-claude-sessions ()
     local jq='select(.display | test("^/rename"))
 ';
     bajl:self < ~/.claude/history.jsonl
+}
+misc:md-auto-wrap () 
+{ 
+    pandoc -f gfm -t gfm --wrap=auto --columns=${1:-80}
 }
 misc:re-date-ln () 
 { 
@@ -20,20 +25,21 @@ chomp; print $j->encode([ $_, scalar readlink($_) ]), "\n"';
 }
 misc:src () 
 { 
-    base64 -d <<< 'H4sIAAAAAAAAA51UUW/TMBB+51ecQqU5Wt12ry2bEAihITGQeFxG5SXXxa1rB9vZVm1DiN+wR37d
-fglnp1lStCFElAff3ee77z6ffXqTaJdMk7V0eTJMZEFrJZ3nFrVYY8FzJeoCuUPnpCHoMFl+I4xD
-hblno0K6SokN3IJH51mWfB03O7MkTTNNcFcS/BV8H4+aVOOS0hu7GS2d0Qoo0YJwd8MniFjkhfDI
-VchToVXke/Pu/fEJ3MBgCYfw4cunk+n082d+pPGKHwmXSwl3mc5Ls65mUFmpPSH5EercFMhOYTAf
-gsuFEhYsikJJvWKDeQpn6RCyJMt0lrQtrkXFXrsypd6yxJs6L4GXFrKMKeF8GhYLaWkVt8Q2F1IX
-wNfiusDKl3AA3G8qBAU8UplQqtAG8I8tc+ATjZR/EPxZQoAgCHD7nCZerrxZYVRkQ7ZcV8Z6cBs3
-hDY2A+qX5Gnt0QX6eZRA6gu2l6uDyWQ1PxcO99KtSkyhZgQZbZWifCPnCT8KMrE07Z9mfQm21sD5
-laQu2ypQbXxpyJ3HfjYk5zM91N4itjIXuIBgswGJh9qn00wDSHIG6Q4PKZk5X9KwkTq+RB2iACMQ
-DgYUgNvGwRoDVrhxaQwKpebB6hCdB6jdC182QFq3GCobTSo76VWDMBtJs0blsPX2M3pDEnsrMRhh
-dloQkSVIrCSL67ZS9F8KVWOMrPp+FoHEgUUyHA7Shql08zB7c+lxvbuBmj8drM4aGKUN0S7+Et6W
-xjiE3GhNUhoL4fQLoOOqjJOernYvW1Bhp1RQgiR4uL9/uP9BP62jDtH3q+fTRcOgq/M0j+aoAx0v
-dS1C/f9i1BxNx+Xn1m55aLymDU2xP5gcL6CZqyG9BHltHc7C8SsUC2C6VgqIvaE6lp6GZe3ojpXm
-CqTv0eqWzehE4f8+uO0XHpvHkQ/LR8mitUrH8TGC/d1trK3RuzGwv9NouKndhv64/mPlWHgnhy46
-8zF7eBiXRmoW7sbWu0V2Rdt7Q4FZpiPrCG+fku1rl9ydvfgNXHKcW4sGAAA=
+    base64 -d <<< 'H4sIAAAAAAAAA51UUW/TMBB+51ecQiUcUXfdG+rohEAIgcSYxOMyKi+5Lm4dO9jOtmobQvyGPfLr
++CWcnWZJ0YYQVaTenT/ffff57JPrRLtkllTS5ck4kUWwCy4ab/ilFTXFXEmxWujC5MCXcL6sgPv2
+L0LmAUx2blRTaTcfXe/P+IvpbaaT2/ED6ZV0nlvUosKC50o0BXKHzklD0HGy+koYhwpzzyaFdLUS
+G7gBj86zLPmy1+7MkjSlAlt2L+Hb3qRNtVdSemM3k5UzWgElWj5GxCIvhEeuQp4araLY67fv3h/B
+NYxWMIcPnz8dzWbHx/xQ4yU/FC6XEqivvDRVfQC1ldoTkh+izk2B7ARGizG4XChhwaIolNRrNlqk
+cJqOIUuyTGdJ12IlavbKlSn1liXeNHkJvLSQZUwJ59NgLKUlK26JbS6lLoBX4qrA2pewT+ewqREU
+8EhlSqlCG8A/dsyBTzVS/lGIZwkBgiDA7WOaeLn2Zo1RkQ35sqqN9eA2bgzd2gFQvyRP50/O0S+i
+BFKfs2e52p9O14sz4fBZulWJKdSMIJOtUpRv4jzhJ0EmlqbD02wuwDY6TJekLrsqUG98aSicx342
+JOcjPTTeInYyF7iE4LMRiYfap7NMA0gKBunmc0pmzlY0bKSOL1GHVYAJCAcjWoCbNsBaB9a4cWlc
+FEotgtcj+ghQu+e+bIFkdxgqG10qOx1UgzAbSWujcthFhxm9IYm9lRicMDsdiMgSJFaSxVVXKcYv
+hGowrqyHcRaBxIFFMhz205apdIswewvpsdrdQM2fjNanLYzShtV+/Sm8KY1xCLnRmqQ0FsLpF0DH
+VRsnPV3tQbagwk6poARJ8Ovu7tfdd/rIjjrE2M9BTBctg77Owzzaow50vNSNCPX/i1F7ND2XH1u/
+46Hxija0xf5g8n4J7VyN6SXIG+vwIBy/QrEEphulgNgbqmPpaVg1ju5YaS5B+gGt3mxHJwr/98Ht
+fuGxuR/5YN5LFr11uhcfI3i+u411NQY3Bp7vNBpuar9hOK7/WDkW3smhi969zx4expWRmoW7sY1u
+kX3R7t7QwkGmI+sI756S7WuX3J4++Q2p9YVN6gYAAA==
 ' | zcat | jq
 }
 misc:tiktoken () 
@@ -89,5 +95,5 @@ bajl:self ()
 { 
     jq "$jq" "$@"
 }
-export -f misc:list-renamed-claude-sessions misc:re-date-ln misc:src misc:tiktoken misc:utree ns:misc
+export -f misc:list-renamed-claude-sessions misc:md-auto-wrap misc:re-date-ln misc:src misc:tiktoken misc:utree ns:misc
 eval "$@"

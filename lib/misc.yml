@@ -3,6 +3,10 @@
 - id:
   ns: misc
 
+- id: md-auto-wrap
+  sh: |
+    pandoc -f gfm -t gfm --wrap=auto --columns=${1:-80}
+
 - id: list-renamed-claude-sessions
   jq: |
     select(.display | test("^/rename"))
