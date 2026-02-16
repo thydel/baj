@@ -3,14 +3,21 @@
 - id:
   ns: misc
 
+- { ky: [ md ], is: [ nv ] }
+
 - id: fool
   is: [ fa ]
+
   # Func On One Line
   # Warning: break funcs with string variable on multiline when LF can't be replace by SPACE
   # Like python or yaml or jq with comments lines
   # fool fool
   # misc:fool () { local -n a=MAPFILE; mapfile -t < <(declare -f ${1:?}); ((${#a[*]})) || return 1; local i t; for ((i = 2; i < $((${#a[*]} - 1)); ++i)) do t=${a[(($i + 1))]}; printf -v n -- ${t/\%/%%}; [[ ${#n} == 1 && ${n:(-1)} == "}" ]] || [[ ${#n} == 2 && ${n:(-2)} == "};" ]] && a[$i]+=";"; done; a[-1]+=';'; a=("${a[@]% }"); echo "${a[@]##*( )}"; };
   sh: |
+    local _extglob_state
+    _extglob_state=$(shopt -p extglob)
+    shopt -s extglob
+    trap 'eval "$_extglob_state"' RETURN
     local -n a=MAPFILE
     mapfile -t < <(declare -f ${1:?})
     ((${#a[*]})) || return 1
@@ -24,6 +31,45 @@
     a[-1]+=';'
     a=("${a[@]% }")
     echo "${a[@]##*( )}"
+  md: |
+    # Useful invocation
+
+    ```bash
+    listid misc | grep -v :src | map fool
+    misc src | jq 'INDEX(.[]; .id).fool.md' -r
+    ```
+
+    # Breaking cases
+    
+    This transformation is **not safe when a literal newline is
+    semantic data rather than syntax**.
+    
+    Specifically:
+    - Here-documents (`<<EOF`)
+    - Multi-line string literals (`"a\nb"` written as actual newline)
+    - Any construct where embedded newlines must remain newlines
+    
+    Reason:
+    - The function flattens the parser-normalized definition into a
+      single logical line.
+    - All structural newlines become command separators (`;`).
+    - If a newline belongs to *data* (not grammar), it is lost or
+      converted to a space, changing semantics.
+    
+    # Why it is otherwise safe
+    
+    For ordinary shell syntax, this is safe because:
+    
+    - `declare -f` emits a **parser-canonicalized representation** of
+       the function (AST-reserialized form).
+    - In Bash grammar, a newline and `;` are equivalent command
+      terminators.
+    - After canonicalization, compound constructs (`if`, `for`,
+      `while`, `case`, `&&`, `||`, pipelines, `;&`, `;;`,
+      redirections) no longer depend on physical line boundaries.
+    
+    Therefore, replacing structural newlines with semicolons preserves
+    meaning for all constructs where newline is purely syntactic.
 
 - id: md-auto-wrap
   sh: |
@@ -51,6 +97,8 @@
     uv run --with tiktoken python -c "$py"
 
 - id: utree
+  # Recursively prints JSON/YAML objects as a tree
+  # Shows keys with ├── / └── connectors and proper indentation  
   jq: |-
     def tree($indent):
       if type == "object" then
@@ -65,14 +113,8 @@
             .value as $k |
             ($idx == ($len - 1)) as $is_last_item |
             ($obj[$k]) as $val |
-
-            # Choose connector based on position
             (if $is_last_item then "└── " else "├── " end) as $connector |
-
-            # Choose indent continuation based on position
             (if $is_last_item then "    " else "│   " end) as $next_indent |
-
-            # If object, recurse; if leaf (null or other), just show it
             (
               if $val | type == "object" then
                 "\($indent)\($connector)\($k)/\n" +

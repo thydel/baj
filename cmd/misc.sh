@@ -9,6 +9,10 @@ alias re-date-ln='misc:re-date-ln'
 alias tiktoken='misc:tiktoken'
 misc:fool () 
 { 
+    local _extglob_state;
+    _extglob_state=$(shopt -p extglob);
+    shopt -s extglob;
+    trap 'eval "$_extglob_state"' RETURN;
     local -n a=MAPFILE;
     mapfile -t < <(declare -f ${1:?});
     ((${#a[*]})) || return 1;
@@ -42,25 +46,37 @@ chomp; print $j->encode([ $_, scalar readlink($_) ]), "\n"';
 }
 misc:src () 
 { 
-    base64 -d <<< 'H4sIAAAAAAAAA51V227jNhB971cMZGdDrU1f8lTYcbptsVuk6G4D9NFSDa5ERbRpUhWpJIbtYrHf
-kMd+3X5Jh5QVKcWmKGoY8MzwcC5nZujlPlAmmAVbYZJgGIgU5Uxr6WS0L4OMBfEwMDnapU6YBKqA
-Ld5/f/Pu+pe3kdqyIhOSA7VwCZck5YlkJaoZ9PfT2XfHMFKE9Pc9tnwdH8MQDgcoua1KBdNI1Q4F
-2EhlugRCBCzgYo6WS+i314DCNAznMBiIEP2lOlKAH7vo79kSYQIGDhAfa3tRCmUzoHeggFLMw46j
-6Gx8dnY6Xy7R1lNHWCxgCq9eoaZmhE5Db4mCYxRAHLtMu8iLFnnxhJzXUDxhy76IB4soQJNLUfFI
-sSWdou18fo7ygkSBy/dNfAYYAevgSa6hMfZ6rwmER3c5OA6/0pRtSlllNb0vWRGcGlIwjJQ4sm+z
-rWuB//GQhQOjnGhZbZVZuG7QbyfHl9xLYSwtuWJbnlLsYZVyargxQiN0GKz/QIzhkieWjFJhCsl2
-cADLjcW6fh/XN7EsrKvJ7hL+HI9qV+Mc3etyN1obrSSgo+ylREpOU2Y5lc5PwUuJth/e/nT9AfbQ
-X+N8/Pzbrx9ms5sbeqX4Pb1iJhECGVXI5raY191HJL3iKtEpJ9jD1RAMThorcfZYKoXakP4qhDgc
-Iv9RpKKgKRHHmbwxOc4pnlhdJTnQvIQoIpIZGzohEyVK/oovMxMqBbplDykvbI4TRe2u4ICL4lOZ
-oCtXBtD3TeZAJ4q7zjs7TtDBEwK0fIkTKzZWb7hnZIe62Ba6tGB2ZgjN2RywXqSn0Ue33K48BULd
-kvNETieTzeojM/w8PLFEJFcEIaMTU+hvZCziR44mEobdblZ3UFZuoe4FVtlEgWJnc43mxNeze3l+
-K1ty3tCc8gycjrurUq5sOHOrKdDoqPO7pT+ucdiQHZtzVS/uCJiBPh7AoTaQWoEN35nQHzIpV05r
-Ea0FsNxbm9dAlBsMhvUqhp10ooGbjaCWuTS8sXY9Wo0U21Jwp7jZaUCYLEJ8JJE+NJG8/Y7JivuT
-TddOPBBzID4Z/+TV983Kzd5KWL59fgGLX/Y3cQ1Dt+60Pe/Bj7nWhkOiFb41uH7gup8CtqvQRlhc
-7Y43x8KzUI4JpODL4+OXx0/4Rdnz4G1/dWwqrTNo43w9j7rVLh0rVMVc/P+VUd2aNpfPJ73JQ/EH
-vFAH+0cm1xnUczXElyCpSsPnrv2SswyIqqQEzF5jnBKfhnVlcMdyfQ/CdtJqxXp0PPH/PrjNxz02
-TyPvxCfKvLYJx/4xgsHza6SJ0dkY/MvrFuo2tb3QHdf/GNkHfuZDpa365N09jGstFHG7cbKekG3Q
-Zm/wYB4pn7WHN0/J6bULjvE3fwP3Jhn0fwgAAA==
+    base64 -d <<< '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
+RO3V+5u5bR7Bw/xPvwHy73ZNPQ0AAA==
 ' | zcat | jq
 }
 misc:tiktoken () 
@@ -84,14 +100,8 @@ misc:utree ()
         .value as $k |
         ($idx == ($len - 1)) as $is_last_item |
         ($obj[$k]) as $val |
-
-        # Choose connector based on position
         (if $is_last_item then "└── " else "├── " end) as $connector |
-
-        # Choose indent continuation based on position
         (if $is_last_item then "    " else "│   " end) as $next_indent |
-
-        # If object, recurse; if leaf (null or other), just show it
         (
           if $val | type == "object" then
             "\($indent)\($connector)\($k)/\n" +
