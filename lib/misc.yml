@@ -3,6 +3,28 @@
 - id:
   ns: misc
 
+- id: fool
+  is: [ fa ]
+  # Func On One Line
+  # Warning: break funcs with string variable on multiline when LF can't be replace by SPACE
+  # Like python or yaml or jq with comments lines
+  # fool fool
+  # misc:fool () { local -n a=MAPFILE; mapfile -t < <(declare -f ${1:?}); ((${#a[*]})) || return 1; local i t; for ((i = 2; i < $((${#a[*]} - 1)); ++i)) do t=${a[(($i + 1))]}; printf -v n -- ${t/\%/%%}; [[ ${#n} == 1 && ${n:(-1)} == "}" ]] || [[ ${#n} == 2 && ${n:(-2)} == "};" ]] && a[$i]+=";"; done; a[-1]+=';'; a=("${a[@]% }"); echo "${a[@]##*( )}"; };
+  sh: |
+    local -n a=MAPFILE
+    mapfile -t < <(declare -f ${1:?})
+    ((${#a[*]})) || return 1
+    local i t
+    for ((i = 2; i < $((${#a[*]} - 1)); ++i))
+    do
+        t=${a[(($i + 1))]}
+        printf -v n -- ${t/\%/%%}
+        [[ ${#n} == 1 && ${n:(-1)} == "}" ]] || [[ ${#n} == 2 && ${n:(-2)} == "};" ]] && a[$i]+=";"
+    done
+    a[-1]+=';'
+    a=("${a[@]% }")
+    echo "${a[@]##*( )}"
+
 - id: md-auto-wrap
   sh: |
     pandoc -f gfm -t gfm --wrap=auto --columns=${1:-80}
