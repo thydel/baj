@@ -3,6 +3,7 @@ shopt -s expand_aliases
 alias misc='ns:misc'
 alias fool='misc:fool '
 alias utree='misc:utree'
+alias head-of-journals='misc:head-of-journals'
 alias md-auto-wrap='misc:md-auto-wrap'
 alias list-renamed-claude-sessions='misc:list-renamed-claude-sessions'
 alias re-date-ln='misc:re-date-ln'
@@ -27,6 +28,16 @@ misc:fool ()
     a=("${a[@]% }");
     echo "${a[@]##*( )}"
 }
+misc:head-of-journals () 
+{ 
+    local perl='BEGIN { $j = JSON::PP->new->ascii }
+print $j->encode([ $_, readlink($_) ])
+';
+    local jq='(.[0] | split("/")[0] | .[0:10]) as $date
+| "< \(.[0] | @sh) head -\($lines) > \($dir)/\($date)-\(.[1] | @sh)"
+';
+    ls */README.md | perl -MJSON::PP -lne "$perl" | bajl:self -r --arg dir ${1:?} --arg lines ${2:-100}
+}
 misc:list-renamed-claude-sessions () 
 { 
     local jq='select(.display | test("^/rename"))
@@ -46,37 +57,39 @@ chomp; print $j->encode([ $_, scalar readlink($_) ]), "\n"';
 }
 misc:src () 
 { 
-    base64 -d <<< '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
-RO3V+5u5bR7Bw/xPvwHy73ZNPQ0AAA==
+    base64 -d <<< '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
 ' | zcat | jq
 }
 misc:tiktoken () 
@@ -126,5 +139,5 @@ bajl:self ()
 { 
     jq "$jq" "$@"
 }
-export -f misc:fool misc:list-renamed-claude-sessions misc:md-auto-wrap misc:re-date-ln misc:src misc:tiktoken misc:utree ns:misc
+export -f misc:fool misc:head-of-journals misc:list-renamed-claude-sessions misc:md-auto-wrap misc:re-date-ln misc:src misc:tiktoken misc:utree ns:misc
 eval "$@"

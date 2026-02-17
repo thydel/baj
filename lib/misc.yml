@@ -90,6 +90,16 @@
   sh: |
     find -maxdepth 1 -type l -print0 | perl -MJSON::PP -0ne "$perl" | self -r
 
+- id: head-of-journals
+  perl: |
+    BEGIN { $j = JSON::PP->new->ascii }
+    print $j->encode([ $_, readlink($_) ])
+  jq: |
+    (.[0] | split("/")[0] | .[0:10]) as $date
+    | "< \(.[0] | @sh) head -\($lines) > \($dir)/\($date)-\(.[1] | @sh)"
+  sh: |
+    ls */README.md | perl -MJSON::PP -lne "$perl" | self -r --arg dir ${1:?} --arg lines ${2:-100}
+
 - id: tiktoken
   py: |
     import sys, tiktoken; enc = tiktoken.get_encoding('cl100k_base'); print(len(enc.encode(sys.stdin.read())))
